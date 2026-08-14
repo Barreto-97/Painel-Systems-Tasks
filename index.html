@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Controle · Tasks Systems [Reengenharia]</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+/* ============================================================
+   TOKENS — identidade visual DSV (navy / glass / dourado-azul)
+   ============================================================ */
+:root{
+  --bg-0:#0a0f1c;
+  --bg-1:#0d1526;
+  --bg-2:#111b30;
+  --panel: rgba(255,255,255,0.035);
+  --panel-hover: rgba(255,255,255,0.055);
+  --border: rgba(255,255,255,0.09);
+  --border-soft: rgba(255,255,255,0.05);
+  --text-0:#f2f4f8;
+  --text-1:#b8c1d4;
+  --text-2:#7c8aa5;
+  --gold:#e0b465;
+  --gold-soft: rgba(224,180,101,0.14);
+  --blue:#4fb9ff;
+  --blue-soft: rgba(79,185,255,0.14);
+  --green:#4ade80;
+  --green-soft: rgba(74,222,128,0.14);
+  --red:#f76464;
+  --red-soft: rgba(247,100,100,0.14);
+  --amber:#f5b942;
+  --amber-soft: rgba(245,185,66,0.14);
+  --radius-lg:20px;
+  --radius-md:14px;
+  --radius-sm:9px;
+  --shadow-lift: 0 20px 60px -20px rgba(0,0,0,0.6);
+  --ff-display:'Syne', sans-serif;
+  --ff-body:'DM Sans', sans-serif;
+  --ff-mono:'DM Mono', monospace;
+
+  /* escala tipográfica padronizada — usar SEMPRE uma destas, nunca valores soltos */
+  --fs-h1:20px;
+  --fs-h2:17px;
+  --fs-card-title:16px;
+  --fs-value-lg:30px;
+  --fs-value-md:19px;
+  --fs-body:13.5px;
+  --fs-body-sm:12.5px;
+  --fs-label:11.5px;
+  --fs-micro:10.5px;
+  --lh-heading:1.25;
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:var(--ff-body);
+  background:
+    radial-gradient(1100px 600px at 12% -10%, rgba(79,185,255,0.09), transparent 60%),
+    radial-gradient(900px 500px at 90% 0%, rgba(224,180,101,0.08), transparent 55%),
+    var(--bg-0);
+  color:var(--text-0);
+  min-height:100vh;
+  line-height:1.5;
+}
+::selection{background:var(--gold-soft); color:var(--gold);}
+::-webkit-scrollbar{width:10px; height:10px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12); border-radius:10px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.2);}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+}
+
+a{color:inherit;}
+button{font-family:inherit; cursor:pointer;}
+:focus-visible{outline:2px solid var(--blue); outline-offset:2px; border-radius:6px;}
+
+/* ============================================================
+   LAYOUT SHELL
+   ============================================================ */
+.app{max-width:1440px; margin:0 auto; padding:28px 32px 80px;}
+
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:20px; margin-bottom:30px; flex-wrap:wrap;
+}
+.brand{display:flex; align-items:center; gap:14px;}
+.brand-mark{
+  width:44px; height:44px; border-radius:12px;
+  background:linear-gradient(135deg, var(--blue), var(--gold));
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--ff-display); font-weight:800; font-size:18px; color:#08101f;
+  box-shadow:0 8px 24px -6px rgba(79,185,255,0.4);
+}
+.brand-text h1{
+  font-family:var(--ff-display); font-weight:700; font-size:var(--fs-h1); line-height:var(--lh-heading);
+}
+.brand-text .sub{
+  font-size:12.5px; color:var(--text-2); font-family:var(--ff-mono);
+  text-transform:uppercase; letter-spacing:0.08em; margin-top:2px;
+}
+.tag-reeng{color:var(--gold);}
+
+.topbar-actions{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+.btn{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 16px; border-radius:11px; border:1px solid var(--border);
+  background:var(--panel); color:var(--text-0); font-size:13.5px; font-weight:600;
+  transition:all .15s ease;
+}
+.btn:hover{background:var(--panel-hover); border-color:rgba(255,255,255,0.16); transform:translateY(-1px);}
+.btn-primary{
+  background:linear-gradient(135deg, var(--blue), #2f8fe0);
+  border-color:transparent; color:#061524;
+}
+.btn-primary:hover{filter:brightness(1.08); transform:translateY(-1px);}
+.btn svg{width:15px; height:15px;}
+
+/* ============================================================
+   UPLOAD / EMPTY STATE
+   ============================================================ */
+.upload-screen{
+  display:flex; align-items:center; justify-content:center;
+  min-height:70vh;
+}
+.dropzone{
+  width:100%; max-width:620px;
+  border:1.5px dashed rgba(255,255,255,0.16);
+  border-radius:var(--radius-lg);
+  background:var(--panel);
+  padding:56px 40px; text-align:center;
+  transition:all .2s ease;
+}
+.dropzone.drag-over{
+  border-color:var(--blue); background:var(--blue-soft);
+  transform:scale(1.01);
+}
+.dropzone-icon{
+  width:64px; height:64px; margin:0 auto 20px; border-radius:16px;
+  background:var(--gold-soft); display:flex; align-items:center; justify-content:center;
+  color:var(--gold);
+}
+.dropzone h2{
+  font-family:var(--ff-display); font-size:22px; font-weight:700; margin-bottom:8px;
+}
+.dropzone p{color:var(--text-1); font-size:14px; margin-bottom:24px; max-width:420px; margin-left:auto; margin-right:auto;}
+.dropzone input[type=file]{display:none;}
+.dropzone .hint{
+  margin-top:18px; font-size:12px; color:var(--text-2); font-family:var(--ff-mono);
+}
+.status-line{margin-top:16px; font-size:13px; color:var(--text-2); min-height:18px;}
+.status-line.error{color:var(--red);}
+.status-line.ok{color:var(--green);}
+
+/* ============================================================
+   KPI ROW
+   ============================================================ */
+.kpi-grid{
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:24px;
+}
+@media (max-width: 980px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} }
+@media (max-width: 560px){ .kpi-grid{grid-template-columns:1fr;} }
+
+.kpi-card{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-md);
+  padding:20px 22px; position:relative; overflow:hidden;
+}
+.kpi-card::before{
+  content:''; position:absolute; top:0; left:0; width:3px; height:100%;
+  background:var(--kpi-accent, var(--blue));
+}
+.kpi-label{
+  font-size:11.5px; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-2);
+  font-family:var(--ff-mono); margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.kpi-value{font-family:var(--ff-display); font-size:var(--fs-value-lg); font-weight:800; line-height:1.1;}
+.kpi-value .unit{font-size:16px; font-weight:600; color:var(--text-2); margin-left:2px;}
+.kpi-foot{font-size:12.5px; color:var(--text-2); margin-top:8px;}
+.kpi-foot b{color:var(--text-1); font-weight:600;}
+
+/* breakdown chip row inside kpi */
+.chip-row{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;}
+.chip{
+  font-size:11.5px; font-weight:600; padding:4px 9px; border-radius:100px;
+  display:inline-flex; align-items:center; gap:5px; font-family:var(--ff-mono);
+}
+.chip .dot{width:6px; height:6px; border-radius:50%;}
+.chip-blue{background:var(--blue-soft); color:var(--blue);}
+.chip-gold{background:var(--gold-soft); color:var(--gold);}
+.chip-red{background:var(--red-soft); color:var(--red);}
+.chip-green{background:var(--green-soft); color:var(--green);}
+.chip-amber{background:var(--amber-soft); color:var(--amber);}
+
+/* ============================================================
+   SECTION: GLOBAL CHART
+   ============================================================ */
+.section{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg);
+  padding:24px 26px; margin-bottom:24px;
+}
+.section-head{
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:10px;
+}
+.section-head h2{font-family:var(--ff-display); font-size:var(--fs-h2); font-weight:700; line-height:var(--lh-heading);}
+.section-head .desc{font-size:var(--fs-body-sm); color:var(--text-2); margin-top:3px;}
+.chart-wrap{position:relative; width:100%;}
+
+/* filtro "Projetos" */
+.filter-control{position:relative;}
+.filter-btn{position:relative;}
+.filter-count{
+  background:var(--blue); color:#06131f; font-family:var(--ff-mono); font-weight:700;
+  font-size:10.5px; padding:1px 7px; border-radius:100px; margin-left:2px;
+}
+.filter-btn .fchev{transition:transform .2s ease;}
+.filter-btn.open .fchev{transform:rotate(180deg);}
+.filter-dropdown{
+  position:absolute; top:calc(100% + 8px); right:0; z-index:30;
+  background:var(--bg-2); border:1px solid var(--border); border-radius:var(--radius-md);
+  padding:8px; min-width:240px; max-height:340px; overflow-y:auto;
+  box-shadow:var(--shadow-lift);
+  display:flex; flex-direction:column; gap:2px;
+}
+.filter-chip{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:9px 12px; border-radius:9px; font-size:var(--fs-body); cursor:pointer;
+  background:transparent; border:none; color:var(--text-1); width:100%; text-align:left; font-family:var(--ff-body);
+  transition:background .12s ease;
+}
+.filter-chip:hover{background:rgba(255,255,255,0.06); color:var(--text-0);}
+.filter-chip.active{background:var(--blue-soft); color:var(--blue); font-weight:600;}
+.filter-chip .fc-pct{font-family:var(--ff-mono); font-size:11.5px; color:var(--text-2);}
+.filter-chip.active .fc-pct{color:var(--blue);}
+.filter-divider{height:1px; background:var(--border-soft); margin:4px 2px;}
+
+/* ============================================================
+   PROJECT CARDS GRID
+   ============================================================ */
+.projects-heading{
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px;
+}
+.projects-heading h2{font-family:var(--ff-display); font-size:var(--fs-h2); font-weight:700; line-height:var(--lh-heading);}
+.projects-heading .desc{font-size:12.5px; color:var(--text-2); margin-top:3px;}
+
+.project-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px; margin-bottom:28px;}
+
+.project-card{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-md);
+  padding:20px; cursor:pointer; transition:all .18s ease; position:relative;
+}
+.project-card:hover{background:var(--panel-hover); border-color:rgba(255,255,255,0.18); transform:translateY(-2px);}
+.project-card.expanded{
+  border-color:var(--blue); background:var(--blue-soft);
+  grid-column:1 / -1;
+  cursor:default;
+}
+.pc-top{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:14px;}
+.pc-name{font-family:var(--ff-display); font-weight:700; font-size:var(--fs-card-title); line-height:var(--lh-heading);}
+.pc-meta{font-size:12px; color:var(--text-2); font-family:var(--ff-mono); margin-top:4px;}
+.pc-chevron{
+  width:28px; height:28px; border-radius:8px; background:rgba(255,255,255,0.05);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  transition:transform .2s ease;
+}
+.project-card.expanded .pc-chevron{transform:rotate(180deg); background:var(--blue); color:#06131f;}
+
+.pc-progress-row{display:flex; align-items:center; gap:12px; margin-bottom:6px;}
+.pc-progress-track{
+  flex:1; height:8px; border-radius:100px; background:rgba(255,255,255,0.07); overflow:hidden;
+}
+.pc-progress-fill{
+  height:100%; border-radius:100px;
+  background:linear-gradient(90deg, var(--blue), var(--gold));
+  transition:width .5s cubic-bezier(.4,0,.2,1);
+}
+.pc-progress-pct{font-family:var(--ff-mono); font-weight:600; font-size:14px; min-width:44px; text-align:right;}
+
+.pc-stats{display:flex; gap:16px; margin-top:14px; flex-wrap:wrap;}
+.pc-stat{font-size:12px; color:var(--text-2);}
+.pc-stat b{color:var(--text-1); font-family:var(--ff-mono); font-weight:600;}
+.pc-stat.late b{color:var(--red);}
+
+/* ============================================================
+   EXPANDED CONTENT
+   ============================================================ */
+.expand-body{
+  margin-top:22px; padding-top:22px; border-top:1px solid rgba(255,255,255,0.1);
+  cursor:default;
+}
+.expand-grid{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; margin-bottom:20px;
+}
+.mini-panel{
+  background:rgba(6,12,24,0.4); border:1px solid var(--border-soft); border-radius:var(--radius-sm);
+  padding:16px 18px;
+}
+.mini-panel h3{
+  font-size:11.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-2);
+  font-family:var(--ff-mono); margin-bottom:12px;
+}
+.mini-chart-wrap{position:relative; height:190px;}
+
+/* table */
+.table-wrap{overflow-x:auto; border-radius:var(--radius-sm); border:1px solid var(--border-soft);}
+table.task-table{width:100%; border-collapse:collapse; font-size:13px; min-width:820px;}
+table.task-table thead th{
+  text-align:left; padding:11px 14px; background:rgba(255,255,255,0.03);
+  font-family:var(--ff-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em;
+  color:var(--text-2); border-bottom:1px solid var(--border-soft); white-space:nowrap;
+}
+table.task-table tbody td{
+  padding:11px 14px; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle;
+}
+table.task-table tbody tr:hover{background:rgba(255,255,255,0.025);}
+table.task-table tbody tr.row-sub td:first-child{padding-left:30px; color:var(--text-2);}
+tr.row-group-label td{
+  background:rgba(255,255,255,0.025); color:var(--text-1); font-family:var(--ff-mono);
+  font-size:var(--fs-label); text-transform:uppercase; letter-spacing:0.05em; padding:9px 14px;
+}
+.group-sub-count{color:var(--text-2); text-transform:none; letter-spacing:0; font-family:var(--ff-body);}
+.desc-cell{max-width:340px; white-space:normal; color:var(--text-1);}
+.obs-note{margin-top:4px; font-size:11.5px; color:var(--text-2); font-style:italic;}
+.empty-project-state{
+  padding:40px 20px; text-align:center; color:var(--text-2); font-size:13.5px;
+  background:rgba(6,12,24,0.4); border:1px dashed var(--border-soft); border-radius:var(--radius-sm);
+}
+.empty-project-state svg{color:var(--text-2); margin-bottom:10px;}
+.badge{
+  display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:100px;
+  font-size:11.5px; font-weight:700; font-family:var(--ff-mono); white-space:nowrap;
+}
+.badge-systems{background:var(--blue-soft); color:var(--blue);}
+.badge-reeng{background:var(--gold-soft); color:var(--gold);}
+.badge-outro{background:rgba(255,255,255,0.08); color:var(--text-1);}
+.status-pill{
+  display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:100px;
+  font-size:11.5px; font-weight:600;
+}
+.status-pill .dot{width:6px; height:6px; border-radius:50%;}
+.st-done{background:var(--green-soft); color:var(--green);}
+.st-progress{background:var(--amber-soft); color:var(--amber);}
+.st-late{background:var(--red-soft); color:var(--red);}
+.st-notstarted{background:rgba(255,255,255,0.06); color:var(--text-2);}
+.rean-count{font-family:var(--ff-mono); font-weight:700;}
+.rean-count.has-rean{color:var(--red);}
+
+.empty-note{padding:30px; text-align:center; color:var(--text-2); font-size:13px;}
+
+.render-warning{
+  background:var(--red-soft); border:1px solid rgba(247,100,100,0.35); color:var(--red);
+  border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:20px; font-size:var(--fs-body-sm);
+  display:flex; flex-direction:column; gap:4px;
+}
+
+footer.appfoot{text-align:center; color:var(--text-2); font-size:11.5px; margin-top:40px; font-family:var(--ff-mono);}
+
+.hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ TOPBAR ============ -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">PT</div>
+      <div class="brand-text">
+        <h1>Painel Controle · Tasks <span class="tag-reeng">Systems [Reengenharia]</span></h1>
+        <div class="sub" id="topbar-sub">Aguardando planilha base</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn" id="btn-reload">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        Carregar outra planilha
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ UPLOAD SCREEN ============ -->
+  <div class="upload-screen" id="upload-screen">
+    <div class="dropzone" id="dropzone">
+      <div class="dropzone-icon">
+        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14a2 2 0 0 0 2-2v-5"/><path d="M3 14v5a2 2 0 0 0 2 2"/></svg>
+      </div>
+      <h2>Carregue a planilha base</h2>
+      <p>Arraste o arquivo .xlsx aqui ou clique para selecionar. Cada aba da planilha será lida como um projeto independente.</p>
+      <button class="btn btn-primary" id="btn-select">Selecionar arquivo</button>
+      <input type="file" id="file-input" accept=".xlsx,.xls">
+      <div class="status-line" id="status-line"></div>
+      <div class="hint">.xlsx · processamento 100% local no navegador · nenhum dado sai da sua máquina</div>
+    </div>
+  </div>
+
+  <!-- ============ DASHBOARD (populado via JS) ============ -->
+  <div id="dashboard" class="hidden">
+
+    <div class="kpi-grid" id="kpi-grid"></div>
+
+    <div class="section">
+      <div class="section-head">
+        <div>
+          <h2>Evolução geral por projeto</h2>
+          <div class="desc" id="global-desc">Percentual ponderado de conclusão (Tasks e Subtasks) por aba</div>
+        </div>
+        <div class="filter-control" id="filter-control">
+          <button class="btn filter-btn" id="btn-projetos">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+            Projetos <span class="filter-count" id="filter-count">0</span>
+            <svg class="fchev" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="filter-dropdown hidden" id="filter-dropdown"></div>
+        </div>
+      </div>
+      <div class="chart-wrap" id="global-chart-wrap" style="height:340px;">
+        <canvas id="chart-global"></canvas>
+      </div>
+    </div>
+
+    <div class="projects-heading">
+      <div>
+        <h2>Projetos</h2>
+        <div class="desc" id="projects-desc">Clique em um card para expandir detalhes, gráficos e a tabela de tasks</div>
+      </div>
+      <button class="btn hidden" id="btn-clear-filter">Ver todos os projetos ✕</button>
+    </div>
+    <div class="project-grid" id="project-grid"></div>
+
+  </div>
+
+  <footer class="appfoot">Painel Controle · Tasks Systems [Reengenharia] — processamento local via SheetJS + Chart.js</footer>
+</div>
+
+<script>
+/* ================================================================
+   CONFIG — mapeamento de colunas por PALAVRA-CHAVE no cabeçalho.
+   Ajuste aqui se os nomes reais das colunas da planilha forem
+   diferentes. A busca ignora maiúsculas/acentos e usa "contém".
+   ================================================================ */
+const CONFIG = {
+  columnKeywords: {
+    task:        ['numero da task', 'nº task', 'num task', 'task', 'tarefa'],
+    subtask:     ['subtask', 'sub-task', 'sub tarefa', 'subtarefa'],
+    description: ['descricao', 'descrição', 'atividade', 'detalhe'],
+    obs:         ['obs', 'observacao', 'observação', 'observacoes'],
+    responsible: ['atual responsavel', 'atual responsável', 'responsavel', 'responsável', 'squad', 'time', 'area', 'área'],
+    rework:      ['qtd apontamentos', 'apontamentos', 'reanalise', 'reanálise', 'apontamento', 'retorno', 'nº retorno', 'qtd retorno', 'revis'],
+    // "Previsão de Conclusão" -> data prevista (match por 'previsao'/'prazo')
+    dueDate:     ['previsao de conclusao', 'data prevista', 'previsao', 'previsão', 'prazo'],
+    // "Solicitação" -> data em que a demanda foi pedida
+    requestDate: ['solicitacao', 'solicitação', 'data solicitacao', 'data da solicitacao', 'data de solicitacao'],
+    // "Conclusão" -> coluna dedicada de status/entrega (match EXATO tem prioridade,
+    // por isso não colide com "Previsão de Conclusão")
+    actualOrStatus: ['conclusao', 'conclusão', 'data real', 'status', 'situacao', 'situação', 'entregue', 'concluido']
+  },
+  // valores aceitos na coluna "Conclusão" que indicam item finalizado (texto, não data)
+  completionTrueTokens: ['sim', 'concluido', 'concluído', 'ok', 'x', 'feito', 'done', 'completo', 'entregue', 'finalizado', '1', 'true'],
+  completionFalseTokens: ['nao', 'não', 'pendente', 'n/a', '-', '0', 'false'],
+  // Rótulos de responsável reconhecidos como cada grupo (contém, case-insensitive)
+  responsibleGroups: {
+    systems: ['systems', 'sistemas', 'ti', 'tecnologia'],
+    reengenharia: ['reengenharia', 'reeng', 'processos']
+  },
+  // Peso de conclusão por status textual (quando não há Data Real preenchida)
+  statusWeight: {
+    'concluido': 100, 'concluído': 100, 'finalizado': 100, 'done': 100, 'ok': 100,
+    'em andamento': 50, 'andamento': 50, 'em progresso': 50, 'in progress': 50,
+    'pendente': 0, 'nao iniciado': 0, 'não iniciado': 0, 'not started': 0, 'aguardando': 0,
+    'atrasado': 25 // parcialmente considerado, mas será marcado como atraso à parte
+  },
+  colors: {
+    blue: '#4fb9ff', gold: '#e0b465', green:'#4ade80', red:'#f76464', amber:'#f5b942', textMuted:'#7c8aa5'
+  }
+};
+
+/* ================================================================
+   ESTADO
+   ================================================================ */
+let STATE = {
+  projects: [],       // [{name, tasks:[...]} ...]
+  expandedId: null,
+  filterProjectId: null, // id do projeto selecionado no filtro "Projetos" (null = todos)
+  charts: {}          // instâncias Chart.js ativas, por key
+};
+
+/* ================================================================
+   HELPERS DE TEXTO / DATA
+   ================================================================ */
+function normalize(str){
+  return String(str ?? '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+function findColumnIndex(headerRow, keywordList){
+  const normHeaders = headerRow.map(h => normalize(h));
+  // 1ª passada: correspondência EXATA (evita que "Conclusão" colida com "Previsão de Conclusão")
+  for(const kw of keywordList){
+    const nkw = normalize(kw);
+    const idx = normHeaders.findIndex(h => h === nkw);
+    if(idx !== -1) return idx;
+  }
+  // 2ª passada: correspondência por substring (fallback)
+  for(const kw of keywordList){
+    const nkw = normalize(kw);
+    const idx = normHeaders.findIndex(h => h.includes(nkw));
+    if(idx !== -1) return idx;
+  }
+  return -1;
+}
+function excelDateToJS(val){
+  if(val instanceof Date) return val;
+  if(typeof val === 'number'){
+    // serial de data do Excel
+    const utc = XLSX.SSF ? null : null;
+    const epoch = new Date(Date.UTC(1899, 11, 30));
+    return new Date(epoch.getTime() + val * 86400000);
+  }
+  if(typeof val === 'string'){
+    const s = val.trim();
+    // tenta dd/mm/aaaa
+    let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    if(m){
+      let [_, d, mo, y] = m;
+      if(y.length === 2) y = '20' + y;
+      const dt = new Date(Number(y), Number(mo)-1, Number(d));
+      if(!isNaN(dt)) return dt;
+    }
+    const dt2 = new Date(s);
+    if(!isNaN(dt2)) return dt2;
+  }
+  return null;
+}
+function isDateLike(val){
+  return excelDateToJS(val) !== null && (val instanceof Date || /\d{1,4}[\/\-]\d{1,2}[\/\-]\d{1,4}/.test(String(val)) || typeof val === 'number');
+}
+function fmtDate(d){
+  if(!d) return '—';
+  return d.toLocaleDateString('pt-BR');
+}
+function fmtPct(n){
+  return (Math.round(n*10)/10).toString().replace('.', ',') + '%';
+}
+
+/* ================================================================
+   PARSE DE PLANILHA
+   ================================================================ */
+function parseWorkbook(workbook){
+  const projects = [];
+
+  workbook.SheetNames.forEach(sheetName => {
+    const ws = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''});
+
+    // Aba sem NENHUMA linha (nem cabeçalho) -> ainda assim vira um card vazio
+    const headerRow = rows[0] || [];
+    const dataRows = (rows.slice(1) || []).filter(r => r.some(c => String(c).trim() !== ''));
+
+    const col = {
+      task: findColumnIndex(headerRow, CONFIG.columnKeywords.task),
+      subtask: findColumnIndex(headerRow, CONFIG.columnKeywords.subtask),
+      description: findColumnIndex(headerRow, CONFIG.columnKeywords.description),
+      obs: findColumnIndex(headerRow, CONFIG.columnKeywords.obs),
+      responsible: findColumnIndex(headerRow, CONFIG.columnKeywords.responsible),
+      rework: findColumnIndex(headerRow, CONFIG.columnKeywords.rework),
+      dueDate: findColumnIndex(headerRow, CONFIG.columnKeywords.dueDate),
+      requestDate: findColumnIndex(headerRow, CONFIG.columnKeywords.requestDate),
+      actualOrStatus: findColumnIndex(headerRow, CONFIG.columnKeywords.actualOrStatus),
+    };
+
+    // fallback por posição de coluna (A,B,E,F) caso o nome não seja encontrado
+    if(col.task === -1) col.task = 0;
+    if(col.subtask === -1) col.subtask = 1;
+    if(col.responsible === -1) col.responsible = 4;
+    if(col.rework === -1) col.rework = 5;
+
+    // rede de segurança: nenhuma coluna pode ser reaproveitada por dois campos diferentes
+    (function dedupeColumns(){
+      const priority = ['task','subtask','description','obs','responsible','rework','dueDate','requestDate','actualOrStatus'];
+      const used = new Set();
+      priority.forEach(key => {
+        const idx = col[key];
+        if(idx === -1) return;
+        if(used.has(idx)){ col[key] = -1; }
+        else used.add(idx);
+      });
+    })();
+
+    // Aba sem nenhuma linha de dado -> projeto entra com 0 tasks (card vazio, não é ignorado)
+    if(!dataRows.length){
+      projects.push({ id: sheetName.replace(/\s+/g,'-').toLowerCase(), name: sheetName, tasks: [], overallPct: 0 });
+      return;
+    }
+
+    // agrupa linhas por Task (aba A) -> cada linha distinta de subtask vira um item filho
+    const taskMap = new Map(); // taskId -> {id, rows:[]}
+    dataRows.forEach(row => {
+      const taskVal = String(row[col.task] ?? '').trim();
+      const subVal = String(col.subtask !== -1 ? (row[col.subtask] ?? '') : '').trim();
+      if(!taskVal && !subVal) return;
+      const key = taskVal || '(sem número)';
+      if(!taskMap.has(key)) taskMap.set(key, []);
+      taskMap.get(key).push(row);
+    });
+
+    const tasks = [];
+    let taskSeq = 0;
+    taskMap.forEach((rowsForTask, taskKey) => {
+      taskSeq++;
+      // linha "pai" é a linha SEM subtask preenchida (resumo do Task).
+      // Se todas as linhas do grupo têm subtask preenchido (padrão mais comum),
+      // não existe linha-resumo própria: o Task vira só um agrupador, sem duplicar a 1ª subtask.
+      const parentRowIdx = rowsForTask.findIndex(r => !String(col.subtask !== -1 ? r[col.subtask] : '').trim());
+      const hasDedicatedParentRow = parentRowIdx !== -1;
+      const parentRow = hasDedicatedParentRow ? rowsForTask[parentRowIdx] : null;
+      const subRows = rowsForTask
+        .filter((r, i) => !hasDedicatedParentRow || i !== parentRowIdx)
+        .filter(r => String(col.subtask !== -1 ? r[col.subtask] : '').trim());
+
+      const buildItem = (row, isSub) => {
+        const responsibleRaw = col.responsible !== -1 ? String(row[col.responsible] ?? '').trim() : '';
+        const reworkRaw = col.rework !== -1 ? row[col.rework] : '';
+        const reworkCount = Number(String(reworkRaw).replace(/[^\d]/g,'')) || 0;
+        const dueRaw = col.dueDate !== -1 ? row[col.dueDate] : '';
+        const requestRaw = col.requestDate !== -1 ? row[col.requestDate] : '';
+        const obsRaw = col.obs !== -1 ? String(row[col.obs] ?? '').trim() : '';
+        const statusRaw = col.actualOrStatus !== -1 ? row[col.actualOrStatus] : '';
+        const dueDate = dueRaw ? excelDateToJS(dueRaw) : null;
+        const requestDate = requestRaw ? excelDateToJS(requestRaw) : null;
+        let actualDate = null;
+        let statusText = '';
+        if(statusRaw !== '' && statusRaw !== null && statusRaw !== undefined){
+          if(isDateLike(statusRaw)) actualDate = excelDateToJS(statusRaw);
+          else statusText = normalize(statusRaw);
+        }
+
+        // determina percentual de conclusão a partir da coluna "Conclusão"
+        // (aceita data preenchida OU texto: Sim / Concluído / X / etc.)
+        let pct = 0;
+        let statusLabel = 'nao-iniciado';
+        if(actualDate){
+          pct = 100; statusLabel = 'concluido';
+        } else if(statusText){
+          if(CONFIG.completionTrueTokens.some(t => statusText === normalize(t) || statusText.includes(normalize(t)))){
+            pct = 100; statusLabel = 'concluido';
+          } else if(CONFIG.completionFalseTokens.some(t => statusText === normalize(t))){
+            pct = 0; statusLabel = 'nao-iniciado';
+          } else {
+            const found = Object.keys(CONFIG.statusWeight).find(k => statusText.includes(normalize(k)));
+            if(found){
+              pct = CONFIG.statusWeight[found];
+              statusLabel = pct === 100 ? 'concluido' : (pct === 0 ? 'nao-iniciado' : 'andamento');
+            } else {
+              pct = 0; statusLabel = 'nao-iniciado';
+            }
+          }
+        }
+
+        // atraso: não concluído e prazo já vencido, OU concluído após o prazo
+        const today = new Date(); today.setHours(0,0,0,0);
+        let isLate = false;
+        if(dueDate){
+          if(pct < 100 && today > dueDate) isLate = true;
+          if(pct === 100 && actualDate && actualDate > dueDate) isLate = true;
+        }
+        if(isLate && statusLabel !== 'concluido') statusLabel = 'atrasado';
+
+        const respNorm = normalize(responsibleRaw);
+        let respGroup = 'outro';
+        if(CONFIG.responsibleGroups.systems.some(k => respNorm.includes(normalize(k)))) respGroup = 'systems';
+        else if(CONFIG.responsibleGroups.reengenharia.some(k => respNorm.includes(normalize(k)))) respGroup = 'reengenharia';
+
+        return {
+          isSub,
+          number: isSub ? String(row[col.subtask] ?? '').trim() : String(taskKey),
+          description: col.description !== -1 ? String(row[col.description] ?? '').trim() : '',
+          obs: obsRaw,
+          responsible: responsibleRaw || '—',
+          respGroup,
+          rework: reworkCount,
+          dueDate, actualDate, requestDate,
+          pct, statusLabel, isLate
+        };
+      };
+
+      // se não há linha-resumo dedicada, o "parent" é apenas um agrupador visual
+      // (não representa uma linha real da planilha — não deve ser contado/exibido como item)
+      const parentItem = hasDedicatedParentRow
+        ? buildItem(parentRow, false)
+        : {
+            isSub:false, synthetic:true, number:String(taskKey), description:'', obs:'',
+            responsible:'—', respGroup:'outro', rework:0,
+            dueDate:null, actualDate:null, requestDate:null, pct:0, statusLabel:'nao-iniciado', isLate:false
+          };
+      const subItems = subRows.map(r => buildItem(r, true));
+
+      tasks.push({ id: `t${taskSeq}`, parent: parentItem, subs: subItems });
+    });
+
+    // -------- pesos: cada Task divide 100% igualmente; subtasks dividem o peso da task-mãe --------
+    const nTasks = tasks.length || 1;
+    const taskWeight = 100 / nTasks;
+    tasks.forEach(t => {
+      if(t.subs.length){
+        const subW = taskWeight / t.subs.length;
+        t.parent.weight = 0; // task com subtasks não pontua sozinha, pontuação vem das subtasks
+        t.subs.forEach(s => s.weight = subW);
+      } else {
+        t.parent.weight = taskWeight;
+      }
+    });
+
+    // percentual geral ponderado do projeto
+    let weightedSum = 0;
+    tasks.forEach(t => {
+      if(t.subs.length){
+        t.subs.forEach(s => weightedSum += (s.weight * s.pct / 100));
+      } else {
+        weightedSum += (t.parent.weight * t.parent.pct / 100);
+      }
+    });
+
+    projects.push({
+      id: sheetName.replace(/\s+/g,'-').toLowerCase(),
+      name: sheetName,
+      tasks,
+      overallPct: weightedSum
+    });
+  });
+
+  return projects;
+}
+
+/* ================================================================
+   AGREGAÇÕES
+   ================================================================ */
+function allItems(project){
+  const items = [];
+  project.tasks.forEach(t => {
+    if(t.subs.length) items.push(...t.subs.map(s => ({...s, taskNumber:t.parent.number})));
+    else items.push({...t.parent, taskNumber:t.parent.number});
+  });
+  return items;
+}
+function lateOnTimeCounts(project){
+  const items = allItems(project);
+  const late = items.filter(i => i.isLate).length;
+  const onTime = items.length - late;
+  return {late, onTime, total: items.length};
+}
+function responsibleCounts(project){
+  const items = allItems(project);
+  const out = {systems:0, reengenharia:0, outro:0};
+  items.forEach(i => out[i.respGroup] = (out[i.respGroup]||0) + 1);
+  return out;
+}
+function reworkByTask(project){
+  return project.tasks.map(t => {
+    const total = t.parent.rework + t.subs.reduce((a,s)=>a+s.rework,0);
+    return {taskNumber:t.parent.number, count: total};
+  }).sort((a,b)=>b.count-a.count);
+}
+
+/* ================================================================
+   RENDER — KPIs GLOBAIS
+   ================================================================ */
+function renderGlobalKPIs(projects){
+  const el = document.getElementById('kpi-grid');
+  const allTasksCount = projects.reduce((a,p)=>a+p.tasks.length,0);
+  const allSubtasksCount = projects.reduce((a,p)=>a+p.tasks.reduce((b,t)=>b+t.subs.length,0),0);
+  const avgPct = projects.length ? (projects.reduce((a,p)=>a+p.overallPct,0)/projects.length) : 0;
+
+  let totalLate = 0, totalOnTime = 0;
+  const respTotals = {systems:0, reengenharia:0, outro:0};
+  let totalRework = 0;
+  projects.forEach(p => {
+    const lo = lateOnTimeCounts(p); totalLate += lo.late; totalOnTime += lo.onTime;
+    const rc = responsibleCounts(p);
+    respTotals.systems += rc.systems; respTotals.reengenharia += rc.reengenharia; respTotals.outro += rc.outro;
+    allItems(p).forEach(i => totalRework += (i.rework>0?1:0));
+  });
+
+  el.innerHTML = `
+    <div class="kpi-card" style="--kpi-accent:${CONFIG.colors.blue}">
+      <div class="kpi-label">Evolução geral</div>
+      <div class="kpi-value">${fmtPct(avgPct)}</div>
+      <div class="kpi-foot">Média ponderada entre <b>${projects.length}</b> projeto(s)</div>
+    </div>
+    <div class="kpi-card" style="--kpi-accent:${CONFIG.colors.red}">
+      <div class="kpi-label">Prazo — atrasadas x no prazo</div>
+      <div class="kpi-value">${totalLate}<span class="unit">atrasadas</span></div>
+      <div class="chip-row">
+        <span class="chip chip-red"><span class="dot" style="background:${CONFIG.colors.red}"></span>${totalLate} atrasadas</span>
+        <span class="chip chip-green"><span class="dot" style="background:${CONFIG.colors.green}"></span>${totalOnTime} no prazo</span>
+      </div>
+    </div>
+    <div class="kpi-card" style="--kpi-accent:${CONFIG.colors.gold}">
+      <div class="kpi-label">Responsabilidade</div>
+      <div class="kpi-value">${respTotals.systems + respTotals.reengenharia}<span class="unit">itens</span></div>
+      <div class="chip-row">
+        <span class="chip chip-blue"><span class="dot" style="background:${CONFIG.colors.blue}"></span>Systems ${respTotals.systems}</span>
+        <span class="chip chip-gold"><span class="dot" style="background:${CONFIG.colors.gold}"></span>Reeng. ${respTotals.reengenharia}</span>
+      </div>
+    </div>
+    <div class="kpi-card" style="--kpi-accent:${CONFIG.colors.amber}">
+      <div class="kpi-label">Itens com reanálise</div>
+      <div class="kpi-value">${totalRework}<span class="unit">/ ${allTasksCount + allSubtasksCount}</span></div>
+      <div class="kpi-foot"><b>${allTasksCount}</b> tasks · <b>${allSubtasksCount}</b> subtasks mapeadas</div>
+    </div>
+  `;
+}
+
+/* ================================================================
+   RENDER — GRÁFICO GLOBAL (coluna, % por projeto, sempre com todos)
+   ================================================================ */
+function renderGlobalChart(allProjects, highlightId){
+  if(typeof Chart === 'undefined'){
+    throw new Error('Chart.js não carregou (verifique a conexão com a internet / bloqueio de CDN)');
+  }
+  const hasDataLabels = (typeof ChartDataLabels !== 'undefined');
+
+  const ctx = document.getElementById('chart-global');
+  if(STATE.charts.global) STATE.charts.global.destroy();
+
+  // ordena do maior para o menor %, igual ao esboço
+  const sorted = [...allProjects].sort((a,b) => b.overallPct - a.overallPct);
+  const labels = sorted.map(p => p.name);
+  const data = sorted.map(p => Math.round(p.overallPct*10)/10);
+
+  const bg = sorted.map(p => {
+    if(highlightId) return p.id === highlightId ? CONFIG.colors.blue : 'rgba(255,255,255,0.14)';
+    const v = p.overallPct;
+    return v >= 80 ? CONFIG.colors.green : v >= 40 ? CONFIG.colors.gold : CONFIG.colors.red;
+  });
+
+  STATE.charts.global = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'% concluído', data, backgroundColor:bg, borderRadius:8, maxBarThickness:56 }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:26 } },
+      plugins:{
+        legend:{display:false},
+        tooltip:{ callbacks:{ label: c => ` ${c.formattedValue}% concluído` } },
+        // rótulo de % em cima da barra é opcional — se a lib de datalabels não
+        // carregou por qualquer motivo de rede, o gráfico ainda funciona sem ela
+        ...(hasDataLabels ? { datalabels:{
+          anchor:'end', align:'end', offset:4,
+          color:'#f2f4f8', font:{ family:'Syne', weight:700, size:12.5 },
+          formatter: v => (v.toString().replace('.',',')) + '%'
+        }} : {})
+      },
+      scales:{
+        y:{ min:0, max:100, ticks:{ color: CONFIG.colors.textMuted, callback:v=>v+'%' }, grid:{ color:'rgba(255,255,255,0.05)' } },
+        x:{ ticks:{ color:'#c7cfe0' }, grid:{ display:false } }
+      }
+    },
+    plugins: hasDataLabels ? [ChartDataLabels] : []
+  });
+}
+
+/* ================================================================
+   FILTRO "PROJETOS" — dropdown + KPIs/tabela dinâmicos por projeto
+   ================================================================ */
+function getScopedProjects(){
+  if(!STATE.filterProjectId) return STATE.projects;
+  const p = STATE.projects.find(p => p.id === STATE.filterProjectId);
+  return p ? [p] : STATE.projects;
+}
+
+function renderFilterDropdown(){
+  const dd = document.getElementById('filter-dropdown');
+  const countEl = document.getElementById('filter-count');
+  countEl.textContent = STATE.projects.length;
+
+  const allActive = !STATE.filterProjectId ? 'active' : '';
+  let html = `<button class="filter-chip ${allActive}" data-pid="">
+    <span>Todos os projetos</span>
+  </button><div class="filter-divider"></div>`;
+
+  STATE.projects.forEach(p => {
+    const active = STATE.filterProjectId === p.id ? 'active' : '';
+    html += `<button class="filter-chip ${active}" data-pid="${p.id}">
+      <span>${escapeHTML(p.name)}</span>
+      <span class="fc-pct">${fmtPct(Math.round(p.overallPct*10)/10)}</span>
+    </button>`;
+  });
+  dd.innerHTML = html;
+
+  dd.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      STATE.filterProjectId = chip.dataset.pid || null;
+      closeFilterDropdown();
+      applyFilter();
+    });
+  });
+}
+
+function openFilterDropdown(){
+  document.getElementById('filter-dropdown').classList.remove('hidden');
+  document.getElementById('btn-projetos').classList.add('open');
+}
+function closeFilterDropdown(){
+  document.getElementById('filter-dropdown').classList.add('hidden');
+  document.getElementById('btn-projetos').classList.remove('open');
+}
+
+function renderGlobalDesc(){
+  const desc = document.getElementById('global-desc');
+  const projDesc = document.getElementById('projects-desc');
+  const clearBtn = document.getElementById('btn-clear-filter');
+  if(!STATE.filterProjectId){
+    desc.textContent = 'Percentual ponderado de conclusão (Tasks e Subtasks) por aba';
+    projDesc.textContent = 'Clique em um card para expandir detalhes, gráficos e a tabela de tasks';
+    clearBtn.classList.add('hidden');
+    return;
+  }
+  const project = STATE.projects.find(p => p.id === STATE.filterProjectId);
+  if(!project){
+    desc.textContent = 'Percentual ponderado de conclusão (Tasks e Subtasks) por aba';
+    projDesc.textContent = 'Clique em um card para expandir detalhes, gráficos e a tabela de tasks';
+    clearBtn.classList.add('hidden');
+    return;
+  }
+  desc.textContent = `Filtrando por: ${project.name} — o gráfico mantém todos os projetos para referência`;
+  projDesc.textContent = `Mostrando apenas: ${project.name}`;
+  clearBtn.classList.remove('hidden');
+}
+
+function applyFilter(){
+  // ao filtrar um projeto, o card dele já abre expandido — não precisa clicar de novo
+  STATE.expandedId = STATE.filterProjectId;
+  safeRun('KPIs', () => renderGlobalKPIs(getScopedProjects()));
+  safeRun('Gráfico geral', () => renderGlobalChart(STATE.projects, STATE.filterProjectId));
+  safeRun('Descrição do gráfico', () => renderGlobalDesc());
+  safeRun('Filtro de projetos', () => renderFilterDropdown());
+  safeRun('Cards de projeto', () => renderProjectCards(getScopedProjects()));
+}
+
+/* ================================================================
+   RENDER — CARDS DE PROJETO
+   ================================================================ */
+function renderProjectCards(projects){
+  const grid = document.getElementById('project-grid');
+  grid.innerHTML = '';
+
+  projects.forEach(project => {
+    const card = document.createElement('div');
+    card.className = 'project-card' + (STATE.expandedId === project.id ? ' expanded' : '');
+    card.dataset.id = project.id;
+
+    const lo = lateOnTimeCounts(project);
+    const pctRounded = Math.round(project.overallPct*10)/10;
+
+    card.innerHTML = `
+      <div class="pc-top">
+        <div>
+          <div class="pc-name">${project.name}</div>
+          <div class="pc-meta">${project.tasks.length} tasks · ${project.tasks.reduce((a,t)=>a+t.subs.length,0)} subtasks</div>
+        </div>
+        <div class="pc-chevron">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+      </div>
+      <div class="pc-progress-row">
+        <div class="pc-progress-track"><div class="pc-progress-fill" style="width:${pctRounded}%"></div></div>
+        <div class="pc-progress-pct">${fmtPct(pctRounded)}</div>
+      </div>
+      <div class="pc-stats">
+        <div class="pc-stat">Itens: <b>${lo.total}</b></div>
+        <div class="pc-stat late">Atrasados: <b>${lo.late}</b></div>
+        <div class="pc-stat">No prazo: <b>${lo.onTime}</b></div>
+      </div>
+      <div class="expand-body ${STATE.expandedId === project.id ? '' : 'hidden'}" id="expand-${project.id}"></div>
+    `;
+
+    card.addEventListener('click', (e) => {
+      // evita reabrir se clicou dentro do corpo expandido (tabela etc.)
+      if(e.target.closest('.expand-body') && STATE.expandedId === project.id) return;
+      toggleExpand(project);
+    });
+
+    grid.appendChild(card);
+  });
+
+  if(STATE.expandedId){
+    const project = projects.find(p => p.id === STATE.expandedId);
+    if(project) renderExpandedContent(project);
+  }
+}
+
+function toggleExpand(project){
+  STATE.expandedId = STATE.expandedId === project.id ? null : project.id;
+  safeRun('Cards de projeto', () => renderProjectCards(getScopedProjects()));
+  if(STATE.expandedId){
+    document.getElementById(`expand-${project.id}`)?.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+}
+
+/* ================================================================
+   RENDER — CONTEÚDO EXPANDIDO (gráficos + tabela)
+   ================================================================ */
+function renderExpandedContent(project){
+  const container = document.getElementById(`expand-${project.id}`);
+  if(!container) return;
+  container.classList.remove('hidden');
+
+  if(!project.tasks.length){
+    container.innerHTML = `
+      <div class="empty-project-state">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <div><b>${project.name}</b> ainda não tem tasks cadastradas.</div>
+        <div style="margin-top:4px;">Assim que as linhas forem preenchidas nesta aba, os gráficos e a tabela aparecem aqui automaticamente.</div>
+      </div>`;
+    return;
+  }
+
+  const lo = lateOnTimeCounts(project);
+  const rc = responsibleCounts(project);
+  const rework = reworkByTask(project).filter(r => r.count > 0);
+
+  container.innerHTML = `
+    <div class="expand-grid">
+      <div class="mini-panel">
+        <h3>Evolução geral do projeto</h3>
+        <div class="mini-chart-wrap"><canvas id="donut-${project.id}"></canvas></div>
+      </div>
+      <div class="mini-panel">
+        <h3>Prazo — atrasadas x no prazo</h3>
+        <div class="mini-chart-wrap"><canvas id="late-${project.id}"></canvas></div>
+      </div>
+      <div class="mini-panel">
+        <h3>Responsabilidade (Systems x Reengenharia)</h3>
+        <div class="mini-chart-wrap"><canvas id="resp-${project.id}"></canvas></div>
+      </div>
+      <div class="mini-panel">
+        <h3>Reanálises por task (apontamentos)</h3>
+        <div class="mini-chart-wrap">${rework.length ? `<canvas id="rework-${project.id}"></canvas>` : `<div class="empty-note">Nenhuma task retornou para reanálise neste projeto.</div>`}</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="task-table">
+        <thead>
+          <tr>
+            <th>Nº</th><th>Descrição</th><th>Responsável</th><th>Reanálises</th><th>Status</th><th>Solicitação</th><th>Prazo</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${buildTableRows(project)}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  // gráfico donut de evolução geral
+  const donutCtx = document.getElementById(`donut-${project.id}`);
+  const pct = Math.round(project.overallPct*10)/10;
+  STATE.charts[`donut-${project.id}`] = new Chart(donutCtx, {
+    type:'doughnut',
+    data:{ labels:['Concluído','Restante'], datasets:[{ data:[pct, 100-pct], backgroundColor:[CONFIG.colors.blue, 'rgba(255,255,255,0.07)'], borderWidth:0, cutout:'74%' }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{enabled:false} }
+    },
+    plugins:[{
+      id:'centerText',
+      afterDraw(chart){
+        const {ctx, chartArea:{width,height,left,top}} = chart;
+        ctx.save();
+        ctx.font = "700 26px Syne, sans-serif";
+        ctx.fillStyle = '#f2f4f8';
+        ctx.textAlign = 'center'; ctx.textBaseline='middle';
+        ctx.fillText(fmtPct(pct), left+width/2, top+height/2);
+        ctx.restore();
+      }
+    }]
+  });
+
+  // gráfico atrasado x no prazo
+  const lateCtx = document.getElementById(`late-${project.id}`);
+  STATE.charts[`late-${project.id}`] = new Chart(lateCtx, {
+    type:'doughnut',
+    data:{ labels:['Atrasadas','No prazo'], datasets:[{ data:[lo.late, lo.onTime], backgroundColor:[CONFIG.colors.red, CONFIG.colors.green], borderWidth:0, cutout:'62%' }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{ color:'#c7cfe0', boxWidth:10, font:{size:11} } } }
+    }
+  });
+
+  // gráfico responsabilidade
+  const respCtx = document.getElementById(`resp-${project.id}`);
+  const respLabels = ['Systems','Reengenharia'].concat(rc.outro ? ['Outro'] : []);
+  const respData = [rc.systems, rc.reengenharia].concat(rc.outro ? [rc.outro] : []);
+  const respColors = [CONFIG.colors.blue, CONFIG.colors.gold].concat(rc.outro ? ['#8a93a8'] : []);
+  STATE.charts[`resp-${project.id}`] = new Chart(respCtx, {
+    type:'bar',
+    data:{ labels:respLabels, datasets:[{ data:respData, backgroundColor:respColors, borderRadius:8, maxBarThickness:40 }]},
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{ x:{ ticks:{ color:CONFIG.colors.textMuted, precision:0 }, grid:{ color:'rgba(255,255,255,0.05)' } }, y:{ ticks:{ color:'#c7cfe0' }, grid:{display:false} } }
+    }
+  });
+
+  // gráfico reanálises por task
+  if(rework.length){
+    const reworkCtx = document.getElementById(`rework-${project.id}`);
+    STATE.charts[`rework-${project.id}`] = new Chart(reworkCtx, {
+      type:'bar',
+      data:{ labels:rework.map(r=>r.taskNumber), datasets:[{ data:rework.map(r=>r.count), backgroundColor:CONFIG.colors.amber, borderRadius:8, maxBarThickness:34 }]},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false} },
+        scales:{ y:{ beginAtZero:true, ticks:{ color:CONFIG.colors.textMuted, precision:0 }, grid:{ color:'rgba(255,255,255,0.05)' } }, x:{ ticks:{ color:'#c7cfe0' }, grid:{display:false} } }
+      }
+    });
+  }
+}
+
+function statusPillHTML(item){
+  const map = {
+    'concluido': {cls:'st-done', label:'Concluído'},
+    'andamento': {cls:'st-progress', label:'Em andamento'},
+    'atrasado': {cls:'st-late', label:'Atrasado'},
+    'nao-iniciado': {cls:'st-notstarted', label:'Não iniciado'},
+  };
+  const s = map[item.statusLabel] || map['nao-iniciado'];
+  return `<span class="status-pill ${s.cls}"><span class="dot" style="background:currentColor"></span>${s.label}</span>`;
+}
+function respBadgeHTML(item){
+  if(item.respGroup === 'systems') return `<span class="badge badge-systems">Systems</span>`;
+  if(item.respGroup === 'reengenharia') return `<span class="badge badge-reeng">Reengenharia</span>`;
+  return `<span class="badge badge-outro">${escapeHTML(item.responsible)}</span>`;
+}
+function escapeHTML(str){
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function buildTableRows(project){
+  let rows = '';
+  project.tasks.forEach(t => {
+    const p = t.parent;
+    if(p.synthetic){
+      // agrupador visual: sem linha própria na planilha, então mostra só um rótulo de grupo
+      rows += `
+      <tr class="row-group-label">
+        <td colspan="7"><b>Task ${escapeHTML(p.number)}</b> <span class="group-sub-count">· ${t.subs.length} subtask(s)</span></td>
+      </tr>`;
+    } else {
+      rows += `
+      <tr>
+        <td><b>${escapeHTML(p.number)}</b></td>
+        <td class="desc-cell">${escapeHTML(p.description) || '—'}${p.obs ? `<div class="obs-note">Obs: ${escapeHTML(p.obs)}</div>` : ''}</td>
+        <td>${respBadgeHTML(p)}</td>
+        <td class="rean-count ${p.rework>0?'has-rean':''}">${p.rework}</td>
+        <td>${statusPillHTML(p)}</td>
+        <td>${fmtDate(p.requestDate)}</td>
+        <td>${fmtDate(p.dueDate)}</td>
+      </tr>`;
+    }
+    t.subs.forEach(s => {
+      rows += `
+      <tr class="row-sub">
+        <td>${escapeHTML(s.number)}</td>
+        <td class="desc-cell">${escapeHTML(s.description) || '—'}${s.obs ? `<div class="obs-note">Obs: ${escapeHTML(s.obs)}</div>` : ''}</td>
+        <td>${respBadgeHTML(s)}</td>
+        <td class="rean-count ${s.rework>0?'has-rean':''}">${s.rework}</td>
+        <td>${statusPillHTML(s)}</td>
+        <td>${fmtDate(s.requestDate)}</td>
+        <td>${fmtDate(s.dueDate)}</td>
+      </tr>`;
+    });
+  });
+  return rows || `<tr><td colspan="7" class="empty-note">Sem dados nesta aba.</td></tr>`;
+}
+
+/* ================================================================
+   ORQUESTRAÇÃO GERAL
+   ================================================================ */
+function renderAll(){
+  document.getElementById('upload-screen').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+  document.getElementById('topbar-sub').textContent = `${STATE.projects.length} projeto(s) carregado(s)`;
+
+  STATE.filterProjectId = null;
+
+  // cada etapa roda isolada: se uma falhar, as outras continuam normalmente
+  // (antes, um erro em qualquer uma delas travava tudo em cadeia, de forma invisível)
+  safeRun('KPIs', () => renderGlobalKPIs(STATE.projects));
+  safeRun('Gráfico geral', () => renderGlobalChart(STATE.projects, null));
+  safeRun('Descrição do gráfico', () => renderGlobalDesc());
+  safeRun('Filtro de projetos', () => renderFilterDropdown());
+  safeRun('Cards de projeto', () => renderProjectCards(STATE.projects));
+}
+
+function safeRun(label, fn){
+  try{ fn(); }
+  catch(err){
+    console.error(`[Painel] Falha ao renderizar "${label}":`, err);
+    showRenderWarning(label, err);
+  }
+}
+
+function showRenderWarning(label, err){
+  let banner = document.getElementById('render-warning');
+  if(!banner){
+    banner = document.createElement('div');
+    banner.id = 'render-warning';
+    banner.className = 'render-warning';
+    document.getElementById('dashboard').prepend(banner);
+  }
+  banner.innerHTML += `<div>⚠️ "${label}" não carregou (${escapeHTML(err.message || String(err))}). O restante do painel segue funcionando normalmente.</div>`;
+  banner.classList.remove('hidden');
+}
+
+function handleFile(file){
+  const statusEl = document.getElementById('status-line');
+  statusEl.className = 'status-line';
+  statusEl.textContent = `Lendo ${file.name}…`;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try{
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, {type:'array', cellDates:true});
+      const projects = parseWorkbook(workbook);
+      if(!projects.length){
+        statusEl.className = 'status-line error';
+        statusEl.textContent = 'Não foi possível identificar dados válidos nas abas da planilha.';
+        return;
+      }
+      STATE.projects = projects;
+      STATE.expandedId = null;
+      statusEl.className = 'status-line ok';
+      statusEl.textContent = `${projects.length} projeto(s) carregado(s) com sucesso.`;
+      renderAll();
+    }catch(err){
+      console.error(err);
+      statusEl.className = 'status-line error';
+      statusEl.textContent = 'Erro ao processar o arquivo. Verifique se é um .xlsx válido.';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ================================================================
+   EVENTOS DE UPLOAD
+   ================================================================ */
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+
+document.getElementById('btn-select').addEventListener('click', () => fileInput.click());
+document.getElementById('btn-reload').addEventListener('click', () => {
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('upload-screen').classList.remove('hidden');
+  document.getElementById('status-line').textContent = '';
+  document.getElementById('status-line').className = 'status-line';
+});
+
+document.getElementById('btn-projetos').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const dd = document.getElementById('filter-dropdown');
+  dd.classList.contains('hidden') ? openFilterDropdown() : closeFilterDropdown();
+});
+document.addEventListener('click', (e) => {
+  const control = document.getElementById('filter-control');
+  if(control && !control.contains(e.target)) closeFilterDropdown();
+});
+document.getElementById('btn-clear-filter').addEventListener('click', () => {
+  STATE.filterProjectId = null;
+  applyFilter();
+});
+
+fileInput.addEventListener('change', (e) => {
+  if(e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+['dragenter','dragover'].forEach(evt => {
+  dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+});
+['dragleave','drop'].forEach(evt => {
+  dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove('drag-over'); });
+});
+dropzone.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files[0];
+  if(file) handleFile(file);
+});
+</script>
+</body>
+</html>
