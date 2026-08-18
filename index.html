@@ -6,7 +6,7 @@
 <title>Painel Controle · Tasks Systems [Reengenharia]</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -39,7 +39,7 @@
   --radius-md:14px;
   --radius-sm:9px;
   --shadow-lift: 0 20px 60px -20px rgba(0,0,0,0.6);
-  --ff-display:'Syne', sans-serif;
+  --ff-display:'Inter', -apple-system, 'Segoe UI', sans-serif;
   --ff-body:'DM Sans', sans-serif;
   --ff-mono:'DM Mono', monospace;
 
@@ -854,7 +854,7 @@ function renderGlobalChart(allProjects, highlightId){
         // carregou por qualquer motivo de rede, o gráfico ainda funciona sem ela
         ...(hasDataLabels ? { datalabels:{
           anchor:'end', align:'end', offset:4,
-          color:'#f2f4f8', font:{ family:'Syne', weight:700, size:12.5 },
+          color:'#f2f4f8', font:{ family:'Inter', weight:700, size:12.5 },
           formatter: v => (v.toString().replace('.',',')) + '%'
         }} : {})
       },
@@ -1076,7 +1076,7 @@ function renderExpandedContent(project){
       afterDraw(chart){
         const {ctx, chartArea:{width,height,left,top}} = chart;
         ctx.save();
-        ctx.font = "700 26px Syne, sans-serif";
+        ctx.font = "700 26px Inter, sans-serif";
         ctx.fillStyle = '#f2f4f8';
         ctx.textAlign = 'center'; ctx.textBaseline='middle';
         ctx.fillText(fmtPct(pct), left+width/2, top+height/2);
