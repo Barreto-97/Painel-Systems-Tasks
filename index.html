@@ -93,12 +93,9 @@ button{font-family:inherit; cursor:pointer;}
 }
 .brand{display:flex; align-items:center; gap:14px;}
 .brand-mark{
-  width:44px; height:44px; border-radius:12px;
-  background:linear-gradient(135deg, var(--blue), var(--gold));
-  display:flex; align-items:center; justify-content:center;
-  font-family:var(--ff-display); font-weight:800; font-size:18px; color:#08101f;
-  box-shadow:0 8px 24px -6px rgba(79,185,255,0.4);
+  height:34px; width:auto; display:flex; align-items:center;
 }
+.brand-mark svg{height:100%; width:auto; display:block;}
 .brand-text h1{
   font-family:var(--ff-display); font-weight:700; font-size:var(--fs-h1); line-height:var(--lh-heading);
 }
@@ -158,6 +155,18 @@ button{font-family:inherit; cursor:pointer;}
 .status-line{margin-top:16px; font-size:13px; color:var(--text-2); min-height:18px;}
 .status-line.error{color:var(--red);}
 .status-line.ok{color:var(--green);}
+
+/* ============================================================
+   FILTRO MACRO "DIRECTION" (ex: Projeto / Reengenharia)
+   ============================================================ */
+.direction-filter{display:flex; align-items:center; gap:8px; margin-bottom:18px; flex-wrap:wrap;}
+.direction-pill{
+  padding:8px 16px; border-radius:100px; border:1px solid var(--border);
+  background:var(--panel); color:var(--text-1); font-size:var(--fs-body-sm); font-weight:600;
+  transition:all .15s ease;
+}
+.direction-pill:hover{background:var(--panel-hover); border-color:rgba(255,255,255,0.18);}
+.direction-pill.active{background:var(--blue); border-color:var(--blue); color:#06131f;}
 
 /* ============================================================
    KPI ROW
@@ -336,8 +345,6 @@ tr.row-group-label td{
   display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:100px;
   font-size:11.5px; font-weight:700; font-family:var(--ff-mono); white-space:nowrap;
 }
-.badge-systems{background:var(--blue-soft); color:var(--blue);}
-.badge-reeng{background:var(--gold-soft); color:var(--gold);}
 .badge-outro{background:rgba(255,255,255,0.08); color:var(--text-1);}
 .status-pill{
   display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:100px;
@@ -372,7 +379,11 @@ footer.appfoot{text-align:center; color:var(--text-2); font-size:11.5px; margin-
   <!-- ============ TOPBAR ============ -->
   <div class="topbar">
     <div class="brand">
-      <div class="brand-mark">PT</div>
+      <!-- Logo DSV (versão branca, para tema escuro). Versão azul (#0b2967) disponível
+           para uso futuro em tema claro: mesmo path, trocando apenas fill="#fff" por fill="#0b2967" -->
+      <div class="brand-mark" title="DSV">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 593.16 286.28"><path fill="#fff" d="m458.32,199.56c-1.42,2.76-5.62,7.73-12.9,7.73h-29.92c-7.23,0-11.51-5.02-12.8-7.66l-40.51-82.18c-3.98-7.74-12.32-10.23-19.29-10.23h-73.55c-6.78,0-10.73,4.34-10.73,10.72,0,6.79,4.41,10.72,10.84,10.72h50.6c21.55,0,39.38,13.01,39.38,39.31s-18.01,39.31-39.38,39.31h-65.03c-5.9,0-10.8-3.41-10.8-10.85v-14.16c0-2.41,1.62-3.58,3.6-3.58h57.84c6,0,10.8-3.6,10.8-10.72s-4.72-10.73-10.78-10.73h-54.4c-9.12.01-17.4-2.47-23.25-6.31-3,34.87-27.97,56.36-64.45,56.36h-81.36c-2,0-3.6-1.19-3.6-3.57v-71.47c0-2.37,1.58-3.56,3.54-3.57h28.64c7.63,0,11.03,4.89,11.03,10.67v35.78h.02c0,2.37,1.58,3.56,3.53,3.57,7.66,0,24.84,0,24.84,0,19.55,0,35.8-11.82,35.8-35.73s-16.19-35.74-35.8-35.74h-68.09c-1.94-.03-3.51-1.21-3.51-3.58v-14.19c0-8.02,5.68-10.82,10.91-10.82h74.42c20.95,0,39.9,7.74,51.05,22.02,6.06-14.53,19.6-22.02,36.62-22.02h106.58c13.1,0,27.92,4.49,35.63,19.58l34.49,72.24c.35.74,1.06,1.09,1.93,1.09.8,0,1.55-.3,1.91-1.05,0,0,42.65-89.61,42.9-90.12.22-.48,1.1-1.73,3.18-1.73h32.8c2,0,3.6,1.18,3.6,3.57,0,.68-.13,1.26-.35,1.75l-55.97,115.62Z"/></svg>
+      </div>
       <div class="brand-text">
         <h1>Painel Controle · Tasks <span class="tag-reeng">Systems [Reengenharia]</span></h1>
         <div class="sub" id="topbar-sub">Aguardando planilha base</div>
@@ -407,6 +418,8 @@ footer.appfoot{text-align:center; color:var(--text-2); font-size:11.5px; margin-
 
   <!-- ============ DASHBOARD (populado via JS) ============ -->
   <div id="dashboard" class="hidden">
+
+    <div class="direction-filter hidden" id="direction-filter"></div>
 
     <div class="kpi-grid" id="kpi-grid"></div>
 
@@ -458,6 +471,9 @@ const CONFIG = {
     obs:         ['obs', 'observacao', 'observação', 'observacoes'],
     responsible: ['atual responsavel', 'atual responsável', 'responsavel', 'responsável', 'squad', 'time', 'area', 'área'],
     rework:      ['qtd apontamentos', 'apontamentos', 'reanalise', 'reanálise', 'apontamento', 'retorno', 'nº retorno', 'qtd retorno', 'revis'],
+    // base unificada (1 aba só): "Customer" agrupa os projetos, "Direction" é o filtro macro
+    customer:    ['customer', 'cliente'],
+    direction:   ['direction', 'direção', 'direcao'],
     // "Previsão de Conclusão" -> data prevista (match por 'previsao'/'prazo')
     dueDate:     ['previsao de conclusao', 'data prevista', 'previsao', 'previsão', 'prazo'],
     // "Solicitação" -> data em que a demanda foi pedida
@@ -469,11 +485,10 @@ const CONFIG = {
   // valores aceitos na coluna "Conclusão" que indicam item finalizado (texto, não data)
   completionTrueTokens: ['sim', 'concluido', 'concluído', 'ok', 'x', 'feito', 'done', 'completo', 'entregue', 'finalizado', '1', 'true'],
   completionFalseTokens: ['nao', 'não', 'pendente', 'n/a', '-', '0', 'false'],
-  // Rótulos de responsável reconhecidos como cada grupo (contém, case-insensitive)
-  responsibleGroups: {
-    systems: ['systems', 'sistemas', 'ti', 'tecnologia'],
-    reengenharia: ['reengenharia', 'reeng', 'processos']
-  },
+  // Paleta para cor dinâmica de "Atual Responsável" — cada valor que aparecer na
+  // planilha recebe uma cor automaticamente (hash determinístico), sem precisar
+  // cadastrar nomes aqui. Adicione mais cores à lista se quiser mais variedade.
+  responsiblePalette: ['#4fb9ff', '#e0b465', '#4ade80', '#f76464', '#c084fc', '#f5b942', '#5eead4', '#fb923c', '#a78bfa', '#34d399', '#f472b6', '#60a5fa', '#fbbf24', '#2dd4bf'],
   // Peso de conclusão por status textual (quando não há Data Real preenchida)
   statusWeight: {
     'concluido': 100, 'concluído': 100, 'finalizado': 100, 'done': 100, 'ok': 100,
@@ -493,6 +508,7 @@ let STATE = {
   projects: [],       // [{name, tasks:[...]} ...]
   expandedId: null,
   filterProjectId: null, // id do projeto selecionado no filtro "Projetos" (null = todos)
+  filterDirection: null, // valor selecionado no filtro macro "Direction" (null = todos)
   charts: {}          // instâncias Chart.js ativas, por key
 };
 
@@ -520,6 +536,36 @@ function findColumnIndex(headerRow, keywordList){
     if(idx !== -1) return idx;
   }
   return -1;
+}
+// acha automaticamente em qual das primeiras linhas está o cabeçalho real
+// (precisa bater pelo menos 2 das 3 colunas-chave: task / subtask / descrição)
+function detectHeaderRowIndex(rows){
+  const scanLimit = Math.min(rows.length, 15);
+  let best = {idx:0, score:-1};
+  for(let i=0;i<scanLimit;i++){
+    const row = rows[i];
+    if(!row || !row.length) continue;
+    const score = ['task','subtask','description'].reduce((acc,key) =>
+      acc + (findColumnIndex(row, CONFIG.columnKeywords[key]) !== -1 ? 1 : 0), 0);
+    if(score > best.score) best = {idx:i, score};
+  }
+  return best.score >= 2 ? best.idx : 0;
+}
+// cor por valor de "Atual Responsável" — mesmo nome = mesma cor sempre.
+// RESPONSIBLE_COLOR_MAP é preenchido pelo parseWorkbook (1 cor única por valor,
+// em ordem alfabética, enquanto couber na paleta); hashStr é só o fallback
+// para quando um nome aparece fora desse mapa (ex: dado vindo de outro lugar).
+let RESPONSIBLE_COLOR_MAP = {};
+function hashStr(s){
+  let h = 0;
+  for(let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) | 0; }
+  return Math.abs(h);
+}
+function getResponsibleColor(name){
+  const key = normalize(name) || '—';
+  if(RESPONSIBLE_COLOR_MAP[key]) return RESPONSIBLE_COLOR_MAP[key];
+  const idx = hashStr(key) % CONFIG.responsiblePalette.length;
+  return CONFIG.responsiblePalette[idx];
 }
 function excelDateToJS(val){
   if(val instanceof Date) return val;
@@ -549,7 +595,6 @@ function isDateLike(val){
 }
 function fmtDate(d){
   if(!d) return '—';
-  // aceita Date normal OU string ISO (caso os dados venham de um painel baixado/reaberto)
   const date = (d instanceof Date) ? d : new Date(d);
   if(isNaN(date)) return '—';
   return date.toLocaleDateString('pt-BR');
@@ -568,9 +613,10 @@ function parseWorkbook(workbook){
     const ws = workbook.Sheets[sheetName];
     const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''});
 
-    // Aba sem NENHUMA linha (nem cabeçalho) -> ainda assim vira um card vazio
-    const headerRow = rows[0] || [];
-    const dataRows = (rows.slice(1) || []).filter(r => r.some(c => String(c).trim() !== ''));
+    // acha o cabeçalho automaticamente (pode não ser a linha 1 — ex: base unificada tem na linha 6)
+    const headerRowIdx = detectHeaderRowIndex(rows);
+    const headerRow = rows[headerRowIdx] || [];
+    const dataRows = rows.slice(headerRowIdx + 1).filter(r => r.some(c => String(c).trim() !== ''));
 
     const col = {
       task: findColumnIndex(headerRow, CONFIG.columnKeywords.task),
@@ -579,6 +625,8 @@ function parseWorkbook(workbook){
       obs: findColumnIndex(headerRow, CONFIG.columnKeywords.obs),
       responsible: findColumnIndex(headerRow, CONFIG.columnKeywords.responsible),
       rework: findColumnIndex(headerRow, CONFIG.columnKeywords.rework),
+      customer: findColumnIndex(headerRow, CONFIG.columnKeywords.customer),
+      direction: findColumnIndex(headerRow, CONFIG.columnKeywords.direction),
       dueDate: findColumnIndex(headerRow, CONFIG.columnKeywords.dueDate),
       requestDate: findColumnIndex(headerRow, CONFIG.columnKeywords.requestDate),
       actualOrStatus: findColumnIndex(headerRow, CONFIG.columnKeywords.actualOrStatus),
@@ -592,7 +640,7 @@ function parseWorkbook(workbook){
 
     // rede de segurança: nenhuma coluna pode ser reaproveitada por dois campos diferentes
     (function dedupeColumns(){
-      const priority = ['task','subtask','description','obs','responsible','rework','dueDate','requestDate','actualOrStatus'];
+      const priority = ['task','subtask','description','obs','responsible','rework','customer','direction','dueDate','requestDate','actualOrStatus'];
       const used = new Set();
       priority.forEach(key => {
         const idx = col[key];
@@ -602,147 +650,175 @@ function parseWorkbook(workbook){
       });
     })();
 
-    // Aba sem nenhuma linha de dado -> projeto entra com 0 tasks (card vazio, não é ignorado)
-    if(!dataRows.length){
-      projects.push({ id: sheetName.replace(/\s+/g,'-').toLowerCase(), name: sheetName, tasks: [], overallPct: 0 });
-      return;
-    }
+    // -------- monta 1 projeto a partir de um conjunto de linhas (reaproveitado nos 2 modos abaixo) --------
+    function buildProject(projectId, projectName, direction, rowsForProject){
+      if(!rowsForProject.length){
+        return { id: projectId, name: projectName, direction, tasks: [], overallPct: 0 };
+      }
 
-    // agrupa linhas por Task (aba A) -> cada linha distinta de subtask vira um item filho
-    const taskMap = new Map(); // taskId -> {id, rows:[]}
-    dataRows.forEach(row => {
-      const taskVal = String(row[col.task] ?? '').trim();
-      const subVal = String(col.subtask !== -1 ? (row[col.subtask] ?? '') : '').trim();
-      if(!taskVal && !subVal) return;
-      const key = taskVal || '(sem número)';
-      if(!taskMap.has(key)) taskMap.set(key, []);
-      taskMap.get(key).push(row);
-    });
+      // agrupa linhas por Task -> cada linha distinta de subtask vira um item filho
+      const taskMap = new Map();
+      rowsForProject.forEach(row => {
+        const taskVal = String(row[col.task] ?? '').trim();
+        const subVal = String(col.subtask !== -1 ? (row[col.subtask] ?? '') : '').trim();
+        if(!taskVal && !subVal) return;
+        const key = taskVal || '(sem número)';
+        if(!taskMap.has(key)) taskMap.set(key, []);
+        taskMap.get(key).push(row);
+      });
 
-    const tasks = [];
-    let taskSeq = 0;
-    taskMap.forEach((rowsForTask, taskKey) => {
-      taskSeq++;
-      // linha "pai" é a linha SEM subtask preenchida (resumo do Task).
-      // Se todas as linhas do grupo têm subtask preenchido (padrão mais comum),
-      // não existe linha-resumo própria: o Task vira só um agrupador, sem duplicar a 1ª subtask.
-      const parentRowIdx = rowsForTask.findIndex(r => !String(col.subtask !== -1 ? r[col.subtask] : '').trim());
-      const hasDedicatedParentRow = parentRowIdx !== -1;
-      const parentRow = hasDedicatedParentRow ? rowsForTask[parentRowIdx] : null;
-      const subRows = rowsForTask
-        .filter((r, i) => !hasDedicatedParentRow || i !== parentRowIdx)
-        .filter(r => String(col.subtask !== -1 ? r[col.subtask] : '').trim());
+      const tasks = [];
+      let taskSeq = 0;
+      taskMap.forEach((rowsForTask, taskKey) => {
+        taskSeq++;
+        // linha "pai" é a linha SEM subtask preenchida (resumo do Task).
+        // Se todas as linhas do grupo têm subtask preenchido (padrão mais comum),
+        // não existe linha-resumo própria: o Task vira só um agrupador, sem duplicar a 1ª subtask.
+        const parentRowIdx = rowsForTask.findIndex(r => !String(col.subtask !== -1 ? r[col.subtask] : '').trim());
+        const hasDedicatedParentRow = parentRowIdx !== -1;
+        const parentRow = hasDedicatedParentRow ? rowsForTask[parentRowIdx] : null;
+        const subRows = rowsForTask
+          .filter((r, i) => !hasDedicatedParentRow || i !== parentRowIdx)
+          .filter(r => String(col.subtask !== -1 ? r[col.subtask] : '').trim());
 
-      const buildItem = (row, isSub) => {
-        const responsibleRaw = col.responsible !== -1 ? String(row[col.responsible] ?? '').trim() : '';
-        const reworkRaw = col.rework !== -1 ? row[col.rework] : '';
-        const reworkCount = Number(String(reworkRaw).replace(/[^\d]/g,'')) || 0;
-        const dueRaw = col.dueDate !== -1 ? row[col.dueDate] : '';
-        const requestRaw = col.requestDate !== -1 ? row[col.requestDate] : '';
-        const obsRaw = col.obs !== -1 ? String(row[col.obs] ?? '').trim() : '';
-        const statusRaw = col.actualOrStatus !== -1 ? row[col.actualOrStatus] : '';
-        const dueDate = dueRaw ? excelDateToJS(dueRaw) : null;
-        const requestDate = requestRaw ? excelDateToJS(requestRaw) : null;
-        let actualDate = null;
-        let statusText = '';
-        if(statusRaw !== '' && statusRaw !== null && statusRaw !== undefined){
-          if(isDateLike(statusRaw)) actualDate = excelDateToJS(statusRaw);
-          else statusText = normalize(statusRaw);
-        }
+        const buildItem = (row, isSub) => {
+          const responsibleRaw = col.responsible !== -1 ? String(row[col.responsible] ?? '').trim() : '';
+          const reworkRaw = col.rework !== -1 ? row[col.rework] : '';
+          const reworkCount = Number(String(reworkRaw).replace(/[^\d]/g,'')) || 0;
+          const dueRaw = col.dueDate !== -1 ? row[col.dueDate] : '';
+          const requestRaw = col.requestDate !== -1 ? row[col.requestDate] : '';
+          const obsRaw = col.obs !== -1 ? String(row[col.obs] ?? '').trim() : '';
+          const statusRaw = col.actualOrStatus !== -1 ? row[col.actualOrStatus] : '';
+          const dueDate = dueRaw ? excelDateToJS(dueRaw) : null;
+          const requestDate = requestRaw ? excelDateToJS(requestRaw) : null;
+          let actualDate = null;
+          let statusText = '';
+          if(statusRaw !== '' && statusRaw !== null && statusRaw !== undefined){
+            if(isDateLike(statusRaw)) actualDate = excelDateToJS(statusRaw);
+            else statusText = normalize(statusRaw);
+          }
 
-        // determina percentual de conclusão a partir da coluna "Conclusão"
-        // (aceita data preenchida OU texto: Sim / Concluído / X / etc.)
-        let pct = 0;
-        let statusLabel = 'nao-iniciado';
-        if(actualDate){
-          pct = 100; statusLabel = 'concluido';
-        } else if(statusText){
-          if(CONFIG.completionTrueTokens.some(t => statusText === normalize(t) || statusText.includes(normalize(t)))){
+          // determina percentual de conclusão a partir da coluna "Conclusão"
+          // (aceita data preenchida OU texto: Sim / Concluído / X / etc.)
+          let pct = 0;
+          let statusLabel = 'nao-iniciado';
+          if(actualDate){
             pct = 100; statusLabel = 'concluido';
-          } else if(CONFIG.completionFalseTokens.some(t => statusText === normalize(t))){
-            pct = 0; statusLabel = 'nao-iniciado';
-          } else {
-            const found = Object.keys(CONFIG.statusWeight).find(k => statusText.includes(normalize(k)));
-            if(found){
-              pct = CONFIG.statusWeight[found];
-              statusLabel = pct === 100 ? 'concluido' : (pct === 0 ? 'nao-iniciado' : 'andamento');
-            } else {
+          } else if(statusText){
+            if(CONFIG.completionTrueTokens.some(t => statusText === normalize(t) || statusText.includes(normalize(t)))){
+              pct = 100; statusLabel = 'concluido';
+            } else if(CONFIG.completionFalseTokens.some(t => statusText === normalize(t))){
               pct = 0; statusLabel = 'nao-iniciado';
+            } else {
+              const found = Object.keys(CONFIG.statusWeight).find(k => statusText.includes(normalize(k)));
+              if(found){
+                pct = CONFIG.statusWeight[found];
+                statusLabel = pct === 100 ? 'concluido' : (pct === 0 ? 'nao-iniciado' : 'andamento');
+              } else {
+                pct = 0; statusLabel = 'nao-iniciado';
+              }
             }
           }
-        }
 
-        // atraso: não concluído e prazo já vencido, OU concluído após o prazo
-        const today = new Date(); today.setHours(0,0,0,0);
-        let isLate = false;
-        if(dueDate){
-          if(pct < 100 && today > dueDate) isLate = true;
-          if(pct === 100 && actualDate && actualDate > dueDate) isLate = true;
-        }
-        if(isLate && statusLabel !== 'concluido') statusLabel = 'atrasado';
+          // atraso: não concluído e prazo já vencido, OU concluído após o prazo
+          const today = new Date(); today.setHours(0,0,0,0);
+          let isLate = false;
+          if(dueDate){
+            if(pct < 100 && today > dueDate) isLate = true;
+            if(pct === 100 && actualDate && actualDate > dueDate) isLate = true;
+          }
+          if(isLate && statusLabel !== 'concluido') statusLabel = 'atrasado';
 
-        const respNorm = normalize(responsibleRaw);
-        let respGroup = 'outro';
-        if(CONFIG.responsibleGroups.systems.some(k => respNorm.includes(normalize(k)))) respGroup = 'systems';
-        else if(CONFIG.responsibleGroups.reengenharia.some(k => respNorm.includes(normalize(k)))) respGroup = 'reengenharia';
-
-        return {
-          isSub,
-          number: isSub ? String(row[col.subtask] ?? '').trim() : String(taskKey),
-          description: col.description !== -1 ? String(row[col.description] ?? '').trim() : '',
-          obs: obsRaw,
-          responsible: responsibleRaw || '—',
-          respGroup,
-          rework: reworkCount,
-          dueDate, actualDate, requestDate,
-          pct, statusLabel, isLate
-        };
-      };
-
-      // se não há linha-resumo dedicada, o "parent" é apenas um agrupador visual
-      // (não representa uma linha real da planilha — não deve ser contado/exibido como item)
-      const parentItem = hasDedicatedParentRow
-        ? buildItem(parentRow, false)
-        : {
-            isSub:false, synthetic:true, number:String(taskKey), description:'', obs:'',
-            responsible:'—', respGroup:'outro', rework:0,
-            dueDate:null, actualDate:null, requestDate:null, pct:0, statusLabel:'nao-iniciado', isLate:false
+          return {
+            isSub,
+            number: isSub ? String(row[col.subtask] ?? '').trim() : String(taskKey),
+            description: col.description !== -1 ? String(row[col.description] ?? '').trim() : '',
+            obs: obsRaw,
+            responsible: responsibleRaw || '—',
+            rework: reworkCount,
+            dueDate, actualDate, requestDate,
+            pct, statusLabel, isLate
           };
-      const subItems = subRows.map(r => buildItem(r, true));
+        };
 
-      tasks.push({ id: `t${taskSeq}`, parent: parentItem, subs: subItems });
-    });
+        // se não há linha-resumo dedicada, o "parent" é apenas um agrupador visual
+        // (não representa uma linha real da planilha — não deve ser contado/exibido como item)
+        const parentItem = hasDedicatedParentRow
+          ? buildItem(parentRow, false)
+          : {
+              isSub:false, synthetic:true, number:String(taskKey), description:'', obs:'',
+              responsible:'—', rework:0,
+              dueDate:null, actualDate:null, requestDate:null, pct:0, statusLabel:'nao-iniciado', isLate:false
+            };
+        const subItems = subRows.map(r => buildItem(r, true));
 
-    // -------- pesos: cada Task divide 100% igualmente; subtasks dividem o peso da task-mãe --------
-    const nTasks = tasks.length || 1;
-    const taskWeight = 100 / nTasks;
-    tasks.forEach(t => {
-      if(t.subs.length){
-        const subW = taskWeight / t.subs.length;
-        t.parent.weight = 0; // task com subtasks não pontua sozinha, pontuação vem das subtasks
-        t.subs.forEach(s => s.weight = subW);
-      } else {
-        t.parent.weight = taskWeight;
-      }
-    });
+        tasks.push({ id: `t${taskSeq}`, parent: parentItem, subs: subItems });
+      });
 
-    // percentual geral ponderado do projeto
-    let weightedSum = 0;
-    tasks.forEach(t => {
-      if(t.subs.length){
-        t.subs.forEach(s => weightedSum += (s.weight * s.pct / 100));
-      } else {
-        weightedSum += (t.parent.weight * t.parent.pct / 100);
-      }
-    });
+      // -------- pesos: cada Task divide 100% igualmente; subtasks dividem o peso da task-mãe --------
+      const nTasks = tasks.length || 1;
+      const taskWeight = 100 / nTasks;
+      tasks.forEach(t => {
+        if(t.subs.length){
+          const subW = taskWeight / t.subs.length;
+          t.parent.weight = 0; // task com subtasks não pontua sozinha, pontuação vem das subtasks
+          t.subs.forEach(s => s.weight = subW);
+        } else {
+          t.parent.weight = taskWeight;
+        }
+      });
 
-    projects.push({
-      id: sheetName.replace(/\s+/g,'-').toLowerCase(),
-      name: sheetName,
-      tasks,
-      overallPct: weightedSum
-    });
+      // percentual geral ponderado do projeto
+      let weightedSum = 0;
+      tasks.forEach(t => {
+        if(t.subs.length){
+          t.subs.forEach(s => weightedSum += (s.weight * s.pct / 100));
+        } else {
+          weightedSum += (t.parent.weight * t.parent.pct / 100);
+        }
+      });
+
+      return { id: projectId, name: projectName, direction, tasks, overallPct: weightedSum };
+    }
+
+    if(col.customer !== -1){
+      // -------- MODO UNIFICADO: 1 aba só, com "Customer" agrupando os projetos e
+      // "Direction" como atributo macro de cada grupo (ex: Projeto / Reengenharia) --------
+      const groups = new Map();
+      dataRows.forEach(row => {
+        const custVal = String(row[col.customer] ?? '').trim();
+        if(!custVal) return;
+        if(!groups.has(custVal)) groups.set(custVal, {rows:[], direction:null});
+        const g = groups.get(custVal);
+        g.rows.push(row);
+        if(!g.direction && col.direction !== -1){
+          const dirVal = String(row[col.direction] ?? '').trim();
+          if(dirVal) g.direction = dirVal;
+        }
+      });
+      groups.forEach((g, custName) => {
+        const id = `${sheetName}-${custName}`.replace(/\s+/g,'-').toLowerCase();
+        projects.push(buildProject(id, custName, g.direction, g.rows));
+      });
+    } else {
+      // -------- MODO ANTIGO: a aba inteira é 1 projeto (planilha com 1 aba por projeto) --------
+      const id = sheetName.replace(/\s+/g,'-').toLowerCase();
+      projects.push(buildProject(id, sheetName, null, dataRows));
+    }
   });
+
+  // atribui 1 cor única por valor de "Atual Responsável" (ordem alfabética),
+  // enquanto couber na paleta — evita duas pessoas/times distintos saírem com a mesma cor
+  const allResp = new Set();
+  projects.forEach(p => p.tasks.forEach(t => {
+    [t.parent, ...t.subs].forEach(i => { if(i.responsible && i.responsible !== '—') allResp.add(i.responsible); });
+  }));
+  const sortedResp = [...allResp].sort((a,b) => normalize(a).localeCompare(normalize(b)));
+  const newColorMap = {};
+  sortedResp.forEach((name, idx) => {
+    newColorMap[normalize(name)] = CONFIG.responsiblePalette[idx % CONFIG.responsiblePalette.length];
+  });
+  RESPONSIBLE_COLOR_MAP = newColorMap;
 
   return projects;
 }
@@ -764,11 +840,18 @@ function lateOnTimeCounts(project){
   const onTime = items.length - late;
   return {late, onTime, total: items.length};
 }
+// contagem dinâmica por valor de "Atual Responsável" (qualquer valor que exista na planilha),
+// já ordenada do mais frequente para o menos frequente
 function responsibleCounts(project){
   const items = allItems(project);
-  const out = {systems:0, reengenharia:0, outro:0};
-  items.forEach(i => out[i.respGroup] = (out[i.respGroup]||0) + 1);
-  return out;
+  const out = new Map();
+  items.forEach(i => {
+    const name = i.responsible || '—';
+    out.set(name, (out.get(name) || 0) + 1);
+  });
+  return [...out.entries()]
+    .map(([name, count]) => ({name, count, color: getResponsibleColor(name)}))
+    .sort((a,b) => b.count - a.count);
 }
 function reworkByTask(project){
   return project.tasks.map(t => {
@@ -787,14 +870,28 @@ function renderGlobalKPIs(projects){
   const avgPct = projects.length ? (projects.reduce((a,p)=>a+p.overallPct,0)/projects.length) : 0;
 
   let totalLate = 0, totalOnTime = 0;
-  const respTotals = {systems:0, reengenharia:0, outro:0};
   let totalRework = 0;
+  const respMap = new Map(); // nome do responsável -> contagem (dinâmico, qualquer valor da planilha)
   projects.forEach(p => {
     const lo = lateOnTimeCounts(p); totalLate += lo.late; totalOnTime += lo.onTime;
-    const rc = responsibleCounts(p);
-    respTotals.systems += rc.systems; respTotals.reengenharia += rc.reengenharia; respTotals.outro += rc.outro;
-    allItems(p).forEach(i => totalRework += (i.rework>0?1:0));
+    allItems(p).forEach(i => {
+      totalRework += (i.rework>0?1:0);
+      const name = i.responsible || '—';
+      respMap.set(name, (respMap.get(name) || 0) + 1);
+    });
   });
+  const respList = [...respMap.entries()]
+    .map(([name, count]) => ({name, count, color: getResponsibleColor(name)}))
+    .sort((a,b) => b.count - a.count);
+  const totalResp = respList.reduce((a,r) => a+r.count, 0);
+  const RESP_TOP_N = 5;
+  const respTop = respList.slice(0, RESP_TOP_N);
+  const respRestCount = respList.slice(RESP_TOP_N).reduce((a,r) => a+r.count, 0);
+  const respChipsHTML = respTop.map(r =>
+    `<span class="chip" style="background:${r.color}22; color:${r.color}"><span class="dot" style="background:${r.color}"></span>${escapeHTML(r.name)} ${r.count}</span>`
+  ).join('') + (respRestCount > 0
+    ? `<span class="chip" style="background:rgba(255,255,255,0.08); color:var(--text-1)">+${respList.length - RESP_TOP_N} outros · ${respRestCount}</span>`
+    : '');
 
   el.innerHTML = `
     <div class="kpi-card" style="--kpi-accent:${CONFIG.colors.blue}">
@@ -812,11 +909,8 @@ function renderGlobalKPIs(projects){
     </div>
     <div class="kpi-card" style="--kpi-accent:${CONFIG.colors.gold}">
       <div class="kpi-label">Responsabilidade</div>
-      <div class="kpi-value">${respTotals.systems + respTotals.reengenharia}<span class="unit">itens</span></div>
-      <div class="chip-row">
-        <span class="chip chip-blue"><span class="dot" style="background:${CONFIG.colors.blue}"></span>Systems ${respTotals.systems}</span>
-        <span class="chip chip-gold"><span class="dot" style="background:${CONFIG.colors.gold}"></span>Reeng. ${respTotals.reengenharia}</span>
-      </div>
+      <div class="kpi-value">${totalResp}<span class="unit">itens</span></div>
+      <div class="chip-row">${respChipsHTML}</div>
     </div>
     <div class="kpi-card" style="--kpi-accent:${CONFIG.colors.amber}">
       <div class="kpi-label">Itens com reanálise</div>
@@ -878,23 +972,58 @@ function renderGlobalChart(allProjects, highlightId){
 /* ================================================================
    FILTRO "PROJETOS" — dropdown + KPIs/tabela dinâmicos por projeto
    ================================================================ */
+// projetos filtrados pelo "Direction" macro (Projeto/Reengenharia/etc) — ou todos, se nenhum selecionado
+function getDirectionFilteredProjects(){
+  if(!STATE.filterDirection) return STATE.projects;
+  return STATE.projects.filter(p => p.direction === STATE.filterDirection);
+}
+
+// escopo final: Direction + Projeto específico combinados
 function getScopedProjects(){
-  if(!STATE.filterProjectId) return STATE.projects;
-  const p = STATE.projects.find(p => p.id === STATE.filterProjectId);
-  return p ? [p] : STATE.projects;
+  const base = getDirectionFilteredProjects();
+  if(!STATE.filterProjectId) return base;
+  const p = base.find(p => p.id === STATE.filterProjectId);
+  return p ? [p] : base;
+}
+
+function renderDirectionFilter(){
+  const el = document.getElementById('direction-filter');
+  const directions = [...new Set(STATE.projects.map(p => p.direction).filter(Boolean))].sort();
+  if(!directions.length){ el.classList.add('hidden'); el.innerHTML = ''; return; }
+
+  el.classList.remove('hidden');
+  const allActive = !STATE.filterDirection ? 'active' : '';
+  let html = `<button class="direction-pill ${allActive}" data-dir="">Todos</button>`;
+  directions.forEach(d => {
+    const active = STATE.filterDirection === d ? 'active' : '';
+    html += `<button class="direction-pill ${active}" data-dir="${escapeHTML(d)}">${escapeHTML(d)}</button>`;
+  });
+  el.innerHTML = html;
+
+  el.querySelectorAll('.direction-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      STATE.filterDirection = btn.dataset.dir || null;
+      // se o projeto selecionado não pertence mais à direção escolhida, limpa a seleção
+      if(STATE.filterProjectId && !getDirectionFilteredProjects().some(p => p.id === STATE.filterProjectId)){
+        STATE.filterProjectId = null;
+      }
+      applyFilter();
+    });
+  });
 }
 
 function renderFilterDropdown(){
   const dd = document.getElementById('filter-dropdown');
   const countEl = document.getElementById('filter-count');
-  countEl.textContent = STATE.projects.length;
+  const scopeProjects = getDirectionFilteredProjects();
+  countEl.textContent = scopeProjects.length;
 
   const allActive = !STATE.filterProjectId ? 'active' : '';
   let html = `<button class="filter-chip ${allActive}" data-pid="">
     <span>Todos os projetos</span>
   </button><div class="filter-divider"></div>`;
 
-  STATE.projects.forEach(p => {
+  scopeProjects.forEach(p => {
     const active = STATE.filterProjectId === p.id ? 'active' : '';
     html += `<button class="filter-chip ${active}" data-pid="${p.id}">
       <span>${escapeHTML(p.name)}</span>
@@ -947,8 +1076,11 @@ function applyFilter(){
   // ao filtrar um projeto, o card dele já abre expandido — não precisa clicar de novo
   STATE.expandedId = STATE.filterProjectId;
   safeRun('KPIs', () => renderGlobalKPIs(getScopedProjects()));
-  safeRun('Gráfico geral', () => renderGlobalChart(STATE.projects, STATE.filterProjectId));
+  // o gráfico geral respeita o filtro de Direction (mostra só aquele macro-grupo),
+  // mas sempre com todos os projetos daquele grupo — o filtro de Projeto só destaca a barra
+  safeRun('Gráfico geral', () => renderGlobalChart(getDirectionFilteredProjects(), STATE.filterProjectId));
   safeRun('Descrição do gráfico', () => renderGlobalDesc());
+  safeRun('Filtro de direção', () => renderDirectionFilter());
   safeRun('Filtro de projetos', () => renderFilterDropdown());
   safeRun('Cards de projeto', () => renderProjectCards(getScopedProjects()));
 }
@@ -1104,11 +1236,11 @@ function renderExpandedContent(project){
     }
   });
 
-  // gráfico responsabilidade
+  // gráfico responsabilidade — 1 barra por valor de "Atual Responsável" encontrado neste projeto
   const respCtx = document.getElementById(`resp-${project.id}`);
-  const respLabels = ['Systems','Reengenharia'].concat(rc.outro ? ['Outro'] : []);
-  const respData = [rc.systems, rc.reengenharia].concat(rc.outro ? [rc.outro] : []);
-  const respColors = [CONFIG.colors.blue, CONFIG.colors.gold].concat(rc.outro ? ['#8a93a8'] : []);
+  const respLabels = rc.map(r => r.name);
+  const respData = rc.map(r => r.count);
+  const respColors = rc.map(r => r.color);
   STATE.charts[`resp-${project.id}`] = new Chart(respCtx, {
     type:'bar',
     data:{ labels:respLabels, datasets:[{ data:respData, backgroundColor:respColors, borderRadius:8, maxBarThickness:40 }]},
@@ -1145,9 +1277,10 @@ function statusPillHTML(item){
   return `<span class="status-pill ${s.cls}"><span class="dot" style="background:currentColor"></span>${s.label}</span>`;
 }
 function respBadgeHTML(item){
-  if(item.respGroup === 'systems') return `<span class="badge badge-systems">Systems</span>`;
-  if(item.respGroup === 'reengenharia') return `<span class="badge badge-reeng">Reengenharia</span>`;
-  return `<span class="badge badge-outro">${escapeHTML(item.responsible)}</span>`;
+  const name = item.responsible || '—';
+  if(name === '—') return `<span class="badge badge-outro">—</span>`;
+  const color = getResponsibleColor(name);
+  return `<span class="badge" style="background:${color}22; color:${color}">${escapeHTML(name)}</span>`;
 }
 function escapeHTML(str){
   return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -1201,12 +1334,14 @@ function renderAll(){
   document.getElementById('btn-download-standalone').classList.remove('hidden');
 
   STATE.filterProjectId = null;
+  STATE.filterDirection = null;
 
   // cada etapa roda isolada: se uma falhar, as outras continuam normalmente
   // (antes, um erro em qualquer uma delas travava tudo em cadeia, de forma invisível)
   safeRun('KPIs', () => renderGlobalKPIs(STATE.projects));
   safeRun('Gráfico geral', () => renderGlobalChart(STATE.projects, null));
   safeRun('Descrição do gráfico', () => renderGlobalDesc());
+  safeRun('Filtro de direção', () => renderDirectionFilter());
   safeRun('Filtro de projetos', () => renderFilterDropdown());
   safeRun('Cards de projeto', () => renderProjectCards(STATE.projects));
 }
