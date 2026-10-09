@@ -159,7 +159,10 @@ button{font-family:inherit; cursor:pointer;}
 /* ============================================================
    FILTRO MACRO "DIRECTION" (ex: Projeto / Reengenharia)
    ============================================================ */
-.direction-filter{display:flex; align-items:center; gap:8px; margin-bottom:18px; flex-wrap:wrap;}
+.filter-bar{display:flex; align-items:center; flex-wrap:wrap; gap:12px 28px; margin-bottom:18px;}
+.direction-filter{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+.direction-filter:not(.hidden) + .status-filter{padding-left:28px; border-left:1px solid var(--border);}
+@media (max-width: 700px){ .direction-filter:not(.hidden) + .status-filter{padding-left:0; border-left:none;} }
 .direction-pill{
   padding:8px 16px; border-radius:100px; border:1px solid var(--border);
   background:var(--panel); color:var(--text-1); font-size:var(--fs-body-sm); font-weight:600;
@@ -167,6 +170,9 @@ button{font-family:inherit; cursor:pointer;}
 }
 .direction-pill:hover{background:var(--panel-hover); border-color:rgba(255,255,255,0.18);}
 .direction-pill.active{background:var(--blue); border-color:var(--blue); color:#06131f;}
+.direction-pill.status-open.active{background:var(--amber); border-color:var(--amber);}
+.direction-pill.status-done.active{background:var(--green); border-color:var(--green);}
+.direction-pill .pill-count{font-family:var(--ff-mono); font-size:11px; font-weight:600; opacity:.7; margin-left:6px;}
 
 /* ============================================================
    KPI ROW
@@ -247,6 +253,7 @@ button{font-family:inherit; cursor:pointer;}
 .filter-chip.active{background:var(--blue-soft); color:var(--blue); font-weight:600;}
 .filter-chip .fc-pct{font-family:var(--ff-mono); font-size:11.5px; color:var(--text-2);}
 .filter-chip.active .fc-pct{color:var(--blue);}
+.chart-empty{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--text-2); font-size:var(--fs-body);}
 .filter-divider{height:1px; background:var(--border-soft); margin:4px 2px;}
 
 /* ============================================================
@@ -419,7 +426,10 @@ footer.appfoot{text-align:center; color:var(--text-2); font-size:11.5px; margin-
   <!-- ============ DASHBOARD (populado via JS) ============ -->
   <div id="dashboard" class="hidden">
 
-    <div class="direction-filter hidden" id="direction-filter"></div>
+    <div class="filter-bar">
+      <div class="direction-filter hidden" id="direction-filter"></div>
+      <div class="direction-filter status-filter" id="status-filter"></div>
+    </div>
 
     <div class="kpi-grid" id="kpi-grid"></div>
 
@@ -439,6 +449,7 @@ footer.appfoot{text-align:center; color:var(--text-2); font-size:11.5px; margin-
         </div>
       </div>
       <div class="chart-wrap" id="global-chart-wrap" style="height:340px;">
+        <div class="chart-empty hidden" id="chart-empty">Nenhum projeto para o filtro selecionado.</div>
         <canvas id="chart-global"></canvas>
       </div>
     </div>
@@ -509,6 +520,7 @@ let STATE = {
   expandedId: null,
   filterProjectId: null, // id do projeto selecionado no filtro "Projetos" (null = todos)
   filterDirection: null, // valor selecionado no filtro macro "Direction" (null = todos)
+  filterStatus: null,    // 'open' (em aberto, <100%) | 'done' (finalizado, 100%) | null (todos)
   charts: {}          // instâncias Chart.js ativas, por key
 };
 
@@ -930,7 +942,17 @@ function renderGlobalChart(allProjects, highlightId){
   const hasDataLabels = (typeof ChartDataLabels !== 'undefined');
 
   const ctx = document.getElementById('chart-global');
-  if(STATE.charts.global) STATE.charts.global.destroy();
+  if(STATE.charts.global){ STATE.charts.global.destroy(); STATE.charts.global = null; }
+
+  // sem projetos no filtro atual: não desenha nada (nem barra apagada) e mostra aviso
+  const emptyEl = document.getElementById('chart-empty');
+  if(!allProjects.length){
+    emptyEl.classList.remove('hidden');
+    ctx.style.display = 'none';
+    return;
+  }
+  emptyEl.classList.add('hidden');
+  ctx.style.display = '';
 
   // ordena do maior para o menor %, igual ao esboço
   const sorted = [...allProjects].sort((a,b) => b.overallPct - a.overallPct);
@@ -978,9 +1000,20 @@ function getDirectionFilteredProjects(){
   return STATE.projects.filter(p => p.direction === STATE.filterDirection);
 }
 
-// escopo final: Direction + Projeto específico combinados
+// projeto 100% concluído? (tolerância p/ soma de pesos em ponto flutuante)
+function isProjectFinished(p){ return p.overallPct >= 100 - 1e-6; }
+
+// base filtrada por Direction + Status (Em aberto = abaixo de 100% / Finalizado = 100%)
+function getBaseProjects(){
+  const list = getDirectionFilteredProjects();
+  if(STATE.filterStatus === 'done') return list.filter(isProjectFinished);
+  if(STATE.filterStatus === 'open') return list.filter(p => !isProjectFinished(p));
+  return list;
+}
+
+// escopo final: Direction + Status + Projeto específico combinados
 function getScopedProjects(){
-  const base = getDirectionFilteredProjects();
+  const base = getBaseProjects();
   if(!STATE.filterProjectId) return base;
   const p = base.find(p => p.id === STATE.filterProjectId);
   return p ? [p] : base;
@@ -1004,7 +1037,32 @@ function renderDirectionFilter(){
     btn.addEventListener('click', () => {
       STATE.filterDirection = btn.dataset.dir || null;
       // se o projeto selecionado não pertence mais à direção escolhida, limpa a seleção
-      if(STATE.filterProjectId && !getDirectionFilteredProjects().some(p => p.id === STATE.filterProjectId)){
+      if(STATE.filterProjectId && !getBaseProjects().some(p => p.id === STATE.filterProjectId)){
+        STATE.filterProjectId = null;
+      }
+      applyFilter();
+    });
+  });
+}
+
+function renderStatusFilter(){
+  const el = document.getElementById('status-filter');
+  const list = getDirectionFilteredProjects(); // contagens respeitam só o Direction, para ficarem estáveis
+  const nDone = list.filter(isProjectFinished).length;
+  const nOpen = list.length - nDone;
+  const opts = [
+    {key:'',     label:'Todos',      cls:'',            count:list.length},
+    {key:'open', label:'Em aberto',  cls:'status-open', count:nOpen},
+    {key:'done', label:'Finalizado', cls:'status-done', count:nDone}
+  ];
+  el.innerHTML = opts.map(o => {
+    const active = (STATE.filterStatus || '') === o.key ? 'active' : '';
+    return `<button class="direction-pill ${o.cls} ${active}" data-status="${o.key}">${o.label}<span class="pill-count">${o.count}</span></button>`;
+  }).join('');
+  el.querySelectorAll('.direction-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      STATE.filterStatus = btn.dataset.status || null;
+      if(STATE.filterProjectId && !getBaseProjects().some(p => p.id === STATE.filterProjectId)){
         STATE.filterProjectId = null;
       }
       applyFilter();
@@ -1015,7 +1073,7 @@ function renderDirectionFilter(){
 function renderFilterDropdown(){
   const dd = document.getElementById('filter-dropdown');
   const countEl = document.getElementById('filter-count');
-  const scopeProjects = getDirectionFilteredProjects();
+  const scopeProjects = getBaseProjects();
   countEl.textContent = scopeProjects.length;
 
   const allActive = !STATE.filterProjectId ? 'active' : '';
@@ -1054,20 +1112,22 @@ function renderGlobalDesc(){
   const desc = document.getElementById('global-desc');
   const projDesc = document.getElementById('projects-desc');
   const clearBtn = document.getElementById('btn-clear-filter');
+  const statusTxt = STATE.filterStatus === 'open' ? ' · apenas em aberto'
+                  : STATE.filterStatus === 'done' ? ' · apenas finalizados' : '';
   if(!STATE.filterProjectId){
-    desc.textContent = 'Percentual ponderado de conclusão (Tasks e Subtasks) por aba';
+    desc.textContent = 'Percentual ponderado de conclusão (Tasks e Subtasks) por aba' + statusTxt;
     projDesc.textContent = 'Clique em um card para expandir detalhes, gráficos e a tabela de tasks';
     clearBtn.classList.add('hidden');
     return;
   }
   const project = STATE.projects.find(p => p.id === STATE.filterProjectId);
   if(!project){
-    desc.textContent = 'Percentual ponderado de conclusão (Tasks e Subtasks) por aba';
+    desc.textContent = 'Percentual ponderado de conclusão (Tasks e Subtasks) por aba' + statusTxt;
     projDesc.textContent = 'Clique em um card para expandir detalhes, gráficos e a tabela de tasks';
     clearBtn.classList.add('hidden');
     return;
   }
-  desc.textContent = `Filtrando por: ${project.name} — o gráfico mantém todos os projetos para referência`;
+  desc.textContent = `Filtrando por: ${project.name} — o gráfico mantém os demais projetos do filtro para referência${statusTxt}`;
   projDesc.textContent = `Mostrando apenas: ${project.name}`;
   clearBtn.classList.remove('hidden');
 }
@@ -1076,11 +1136,12 @@ function applyFilter(){
   // ao filtrar um projeto, o card dele já abre expandido — não precisa clicar de novo
   STATE.expandedId = STATE.filterProjectId;
   safeRun('KPIs', () => renderGlobalKPIs(getScopedProjects()));
-  // o gráfico geral respeita o filtro de Direction (mostra só aquele macro-grupo),
-  // mas sempre com todos os projetos daquele grupo — o filtro de Projeto só destaca a barra
-  safeRun('Gráfico geral', () => renderGlobalChart(getDirectionFilteredProjects(), STATE.filterProjectId));
+  // o gráfico geral respeita Direction e Status (só aparecem barras que passam nos dois filtros);
+  // o filtro de Projeto específico apenas destaca a barra
+  safeRun('Gráfico geral', () => renderGlobalChart(getBaseProjects(), STATE.filterProjectId));
   safeRun('Descrição do gráfico', () => renderGlobalDesc());
   safeRun('Filtro de direção', () => renderDirectionFilter());
+  safeRun('Filtro de status', () => renderStatusFilter());
   safeRun('Filtro de projetos', () => renderFilterDropdown());
   safeRun('Cards de projeto', () => renderProjectCards(getScopedProjects()));
 }
@@ -1091,6 +1152,11 @@ function applyFilter(){
 function renderProjectCards(projects){
   const grid = document.getElementById('project-grid');
   grid.innerHTML = '';
+
+  if(!projects.length){
+    grid.innerHTML = '<div class="empty-project-state" style="grid-column:1 / -1;">Nenhum projeto encontrado para o filtro selecionado.</div>';
+    return;
+  }
 
   projects.forEach(project => {
     const card = document.createElement('div');
@@ -1335,6 +1401,7 @@ function renderAll(){
 
   STATE.filterProjectId = null;
   STATE.filterDirection = null;
+  STATE.filterStatus = null;
 
   // cada etapa roda isolada: se uma falhar, as outras continuam normalmente
   // (antes, um erro em qualquer uma delas travava tudo em cadeia, de forma invisível)
@@ -1342,6 +1409,7 @@ function renderAll(){
   safeRun('Gráfico geral', () => renderGlobalChart(STATE.projects, null));
   safeRun('Descrição do gráfico', () => renderGlobalDesc());
   safeRun('Filtro de direção', () => renderDirectionFilter());
+  safeRun('Filtro de status', () => renderStatusFilter());
   safeRun('Filtro de projetos', () => renderFilterDropdown());
   safeRun('Cards de projeto', () => renderProjectCards(STATE.projects));
 }
