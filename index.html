@@ -174,6 +174,14 @@ button{font-family:inherit; cursor:pointer;}
 .direction-pill.status-done.active{background:var(--green); border-color:var(--green);}
 .direction-pill .pill-count{font-family:var(--ff-mono); font-size:11px; font-weight:600; opacity:.7; margin-left:6px;}
 
+/* filtro Responsável */
+.status-filter + .filter-control{padding-left:28px; border-left:1px solid var(--border);}
+@media (max-width: 700px){ .status-filter + .filter-control{padding-left:0; border-left:none;} }
+.filter-btn.active{border-color:var(--blue); color:var(--blue);}
+#resp-filter-dropdown{left:0; right:auto;}
+.resp-scroll{max-height:560px; overflow:auto;}
+.resp-scroll table.task-table thead th{position:sticky; top:0; z-index:1; background:var(--bg-2);}
+
 /* ============================================================
    KPI ROW
    ============================================================ */
@@ -429,6 +437,14 @@ footer.appfoot{text-align:center; color:var(--text-2); font-size:11.5px; margin-
     <div class="filter-bar">
       <div class="direction-filter hidden" id="direction-filter"></div>
       <div class="direction-filter status-filter" id="status-filter"></div>
+      <div class="filter-control" id="resp-filter-control">
+        <button class="btn filter-btn" id="btn-responsavel">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span id="resp-btn-label">Responsável</span> <span class="filter-count" id="resp-filter-count">0</span>
+          <svg class="fchev" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="filter-dropdown hidden" id="resp-filter-dropdown"></div>
+      </div>
     </div>
 
     <div class="kpi-grid" id="kpi-grid"></div>
@@ -451,6 +467,24 @@ footer.appfoot{text-align:center; color:var(--text-2); font-size:11.5px; margin-
       <div class="chart-wrap" id="global-chart-wrap" style="height:340px;">
         <div class="chart-empty hidden" id="chart-empty">Nenhum projeto para o filtro selecionado.</div>
         <canvas id="chart-global"></canvas>
+      </div>
+    </div>
+
+    <div class="section hidden" id="resp-list-section">
+      <div class="section-head">
+        <div>
+          <h2 id="resp-list-title">Tasks por responsável</h2>
+          <div class="desc" id="resp-list-desc"></div>
+        </div>
+        <button class="btn" id="btn-clear-resp">Limpar responsável ✕</button>
+      </div>
+      <div class="table-wrap resp-scroll">
+        <table class="task-table">
+          <thead>
+            <tr><th>Task</th><th>Subtask</th><th>Descrição</th><th>Reanálises</th><th>Status</th><th>Solicitação</th><th>Prazo</th></tr>
+          </thead>
+          <tbody id="resp-list-body"></tbody>
+        </table>
       </div>
     </div>
 
@@ -521,6 +555,7 @@ let STATE = {
   filterProjectId: null, // id do projeto selecionado no filtro "Projetos" (null = todos)
   filterDirection: null, // valor selecionado no filtro macro "Direction" (null = todos)
   filterStatus: null,    // 'open' (em aberto, <100%) | 'done' (finalizado, 100%) | null (todos)
+  filterResponsible: null, // valor de "Atual Responsável" selecionado (null = todos)
   charts: {}          // instâncias Chart.js ativas, por key
 };
 
@@ -1070,6 +1105,112 @@ function renderStatusFilter(){
   });
 }
 
+/* ================================================================
+   FILTRO "RESPONSÁVEL" — dropdown + lista de tasks do responsável
+   ================================================================ */
+// responsáveis existentes nos projetos que passam em Direction + Status, com contagem de itens
+function getResponsibleOptions(){
+  const map = new Map();
+  getBaseProjects().forEach(p => allItems(p).forEach(i => {
+    const name = i.responsible || '—';
+    map.set(name, (map.get(name) || 0) + 1);
+  }));
+  return [...map.entries()]
+    .map(([name, count]) => ({name, count, color: getResponsibleColor(name)}))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+function openRespDropdown(){
+  document.getElementById('resp-filter-dropdown').classList.remove('hidden');
+  document.getElementById('btn-responsavel').classList.add('open');
+}
+function closeRespDropdown(){
+  document.getElementById('resp-filter-dropdown').classList.add('hidden');
+  document.getElementById('btn-responsavel').classList.remove('open');
+}
+
+function renderResponsibleFilter(){
+  const dd = document.getElementById('resp-filter-dropdown');
+  const options = getResponsibleOptions();
+
+  // se o responsável escolhido não existe mais no escopo atual (Direction/Status), limpa a seleção
+  if(STATE.filterResponsible && !options.some(o => o.name === STATE.filterResponsible)){
+    STATE.filterResponsible = null;
+  }
+
+  document.getElementById('resp-filter-count').textContent = options.length;
+  document.getElementById('resp-btn-label').textContent = STATE.filterResponsible
+    ? (STATE.filterResponsible === '—' ? '(sem responsável)' : STATE.filterResponsible)
+    : 'Responsável';
+  document.getElementById('btn-responsavel').classList.toggle('active', !!STATE.filterResponsible);
+
+  let html = `<button class="filter-chip ${!STATE.filterResponsible ? 'active' : ''}" data-resp="">
+    <span>Todos os responsáveis</span>
+  </button><div class="filter-divider"></div>`;
+  options.forEach(o => {
+    const active = STATE.filterResponsible === o.name ? 'active' : '';
+    const label = o.name === '—' ? '(sem responsável)' : o.name;
+    html += `<button class="filter-chip ${active}" data-resp="${escapeHTML(o.name)}">
+      <span style="display:flex; align-items:center; gap:8px;"><span style="width:8px; height:8px; border-radius:50%; background:${o.color}; flex-shrink:0;"></span>${escapeHTML(label)}</span>
+      <span class="fc-pct">${o.count}</span>
+    </button>`;
+  });
+  dd.innerHTML = html;
+
+  dd.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      STATE.filterResponsible = chip.dataset.resp || null;
+      closeRespDropdown();
+      applyFilter();
+    });
+  });
+}
+
+// lista de todas as tasks/subtasks do responsável escolhido, agrupadas por projeto
+// (respeita Direction, Status e Projeto — se um projeto estiver selecionado, lista só dele)
+function renderResponsibleList(){
+  const section = document.getElementById('resp-list-section');
+  const name = STATE.filterResponsible;
+  if(!name){ section.classList.add('hidden'); return; }
+
+  const groups = [];
+  let total = 0;
+  getScopedProjects().forEach(p => {
+    const items = allItems(p).filter(i => (i.responsible || '—') === name);
+    if(items.length){ groups.push({project: p, items}); total += items.length; }
+  });
+
+  const label = name === '—' ? '(sem responsável)' : name;
+  const color = getResponsibleColor(name);
+  document.getElementById('resp-list-title').innerHTML =
+    `Tasks sob responsabilidade de <span class="badge" style="background:${color}22; color:${color}">${escapeHTML(label)}</span>`;
+  document.getElementById('resp-list-desc').textContent =
+    `${total} item(ns) em ${groups.length} projeto(s) — respeita os filtros de Direction, Status e Projeto`;
+
+  let rows = '';
+  groups.forEach(g => {
+    rows += `
+      <tr class="row-group-label">
+        <td colspan="7"><b>${escapeHTML(g.project.name)}</b> <span class="group-sub-count">· ${g.items.length} item(ns)</span></td>
+      </tr>`;
+    g.items.forEach(i => {
+      rows += `
+      <tr>
+        <td><b>${escapeHTML(String(i.taskNumber))}</b></td>
+        <td>${i.isSub ? escapeHTML(i.number) : '—'}</td>
+        <td class="desc-cell">${escapeHTML(i.description) || '—'}${i.obs ? `<div class="obs-note">Obs: ${escapeHTML(i.obs)}</div>` : ''}</td>
+        <td class="rean-count ${i.rework>0?'has-rean':''}">${i.rework}</td>
+        <td>${statusPillHTML(i)}</td>
+        <td>${fmtDate(i.requestDate)}</td>
+        <td>${fmtDate(i.dueDate)}</td>
+      </tr>`;
+    });
+  });
+  document.getElementById('resp-list-body').innerHTML = rows ||
+    `<tr><td colspan="7" class="empty-note">Nenhum item deste responsável no filtro atual.</td></tr>`;
+  section.classList.remove('hidden');
+}
+
 function renderFilterDropdown(){
   const dd = document.getElementById('filter-dropdown');
   const countEl = document.getElementById('filter-count');
@@ -1142,6 +1283,8 @@ function applyFilter(){
   safeRun('Descrição do gráfico', () => renderGlobalDesc());
   safeRun('Filtro de direção', () => renderDirectionFilter());
   safeRun('Filtro de status', () => renderStatusFilter());
+  safeRun('Filtro de responsável', () => renderResponsibleFilter());
+  safeRun('Lista por responsável', () => renderResponsibleList());
   safeRun('Filtro de projetos', () => renderFilterDropdown());
   safeRun('Cards de projeto', () => renderProjectCards(getScopedProjects()));
 }
@@ -1402,6 +1545,7 @@ function renderAll(){
   STATE.filterProjectId = null;
   STATE.filterDirection = null;
   STATE.filterStatus = null;
+  STATE.filterResponsible = null;
 
   // cada etapa roda isolada: se uma falhar, as outras continuam normalmente
   // (antes, um erro em qualquer uma delas travava tudo em cadeia, de forma invisível)
@@ -1410,6 +1554,8 @@ function renderAll(){
   safeRun('Descrição do gráfico', () => renderGlobalDesc());
   safeRun('Filtro de direção', () => renderDirectionFilter());
   safeRun('Filtro de status', () => renderStatusFilter());
+  safeRun('Filtro de responsável', () => renderResponsibleFilter());
+  safeRun('Lista por responsável', () => renderResponsibleList());
   safeRun('Filtro de projetos', () => renderFilterDropdown());
   safeRun('Cards de projeto', () => renderProjectCards(STATE.projects));
 }
@@ -1530,6 +1676,24 @@ document.addEventListener('click', (e) => {
 });
 document.getElementById('btn-clear-filter').addEventListener('click', () => {
   STATE.filterProjectId = null;
+  applyFilter();
+});
+
+// filtro Responsável: abrir/fechar dropdown e limpar seleção
+document.getElementById('btn-responsavel').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const dd = document.getElementById('resp-filter-dropdown');
+  if(dd.classList.contains('hidden')){ closeFilterDropdown(); openRespDropdown(); }
+  else closeRespDropdown();
+});
+// fase de captura: fecha o dropdown de responsável ao clicar fora, mesmo quando outro
+// botão (ex: Projetos) interrompe a propagação do clique
+document.addEventListener('click', (e) => {
+  const control = document.getElementById('resp-filter-control');
+  if(control && !control.contains(e.target)) closeRespDropdown();
+}, true);
+document.getElementById('btn-clear-resp').addEventListener('click', () => {
+  STATE.filterResponsible = null;
   applyFilter();
 });
 
